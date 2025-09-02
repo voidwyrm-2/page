@@ -30,7 +30,10 @@ func newState*(dictMin: int, dicts: varargs[Dict]): State =
   for _ in 0 .. max(0, dictMin - varargsLen(dicts)):
     result.dicts.add(newDict(0))
 
-func getStack*(self: State): seq[NpsValue] =
+func dicts*(self: State): seq[Dict] =
+  self.dicts
+
+func stack*(self: State): seq[NpsValue] =
   self.stack
 
 func dbegin*(self: State, size: int) =
@@ -57,7 +60,7 @@ func push*(self: State, val: NpsValue) =
 
 func pop*(self: State): NpsValue =
   if self.stack.len() == 0:
-    raise newException(NpsError, "stack underflow")
+    raise newNpsError("stack underflow")
 
   self.stack.pop()
 

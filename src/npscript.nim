@@ -108,7 +108,7 @@ proc main() =
     for n in nodes:
       echo n
 
-  var i = initInterpreter()
+  var i = newInterpreter()
 
   try:
     i.exec(nodes)

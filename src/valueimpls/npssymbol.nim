@@ -1,15 +1,15 @@
 type
   Symbol* = ref object of NpsValue
-    value: string
+    name: string
 
 func newNpsSymbol*(name: string): Symbol =
-  Symbol(kind: tSymbol, value: name)
+  Symbol(kind: tSymbol, name: name)
+
+method copy*(self: Symbol): NpsValue =
+  self
 
 method format*(self: Symbol): string =
-  self.value
+  self.name
 
 method debug*(self: Symbol): string =
-  "/" & self.value
-
-func `$`*(self: Symbol): string =
-  self.format()
+  "/" & self.name

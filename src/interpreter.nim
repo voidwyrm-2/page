@@ -1,6 +1,4 @@
 import
-  std/strformat,
-  std/enumerate,
   std/strutils
 
 import
@@ -8,7 +6,7 @@ import
   values,
   parser
 
-from lexer import lit
+from lexer import lit, trace
 
 from builtins import nil
 
@@ -16,42 +14,61 @@ export
   values
 
 type
-  Interpreter* = object
+  Interpreter* = ref object
     state: State
-    inList, inFunc: bool
 
-proc initInterpreter*(): Interpreter =
+proc newInterpreter*(): Interpreter =
   Interpreter(state: newState(2, builtins.getBuiltins(), newDict(0)))
 
-proc initInterpreter*(dicts: seq[Dict]): Interpreter =
+proc newInterpreter*(dicts: seq[Dict]): Interpreter =
   Interpreter(state: newState(min(2, dicts.len()), dicts))
 
-func getState*(self: Interpreter): State =
+func state*(self: Interpreter): State =
   self.state
 
-proc exec*(self: var Interpreter, nodes: openArray[Node]) =
-  for i, n in enumerate(nodes):
-    case n.typ
-    of nSymbol:
-      self.state.push(newNpsSymbol(n.tok.lit()))
-    of nString:
-      self.state.push(newNpsString(n.tok.lit()))
-    of nNumber:
-      let num = parseFloat(n.tok.lit())
-      self.state.push(newNpsNumber(num))
-    of nWord:
-      let v = self.state.get(n.tok.lit())
+proc exec*(self: Interpreter, nodes: openArray[Node]);
 
-      if v.kind == tFunction:
-        let f = Function(v)
+proc exec(self: Interpreter, n: Node) =
+  case n.typ
+  of nSymbol:
+    self.state.push(newNpsSymbol(n.tok.lit()))
+  of nString:
+    self.state.push(newNpsString(n.tok.lit()))
+  of nNumber:
+    let num = parseFloat(n.tok.lit())
+    self.state.push(newNpsNumber(num))
+  of nList:
+    var i = newInterpreter(self.state.dicts())
+    i.exec(n.nodes)
+    self.state.push(newNpsList(i.state().stack()))
+  of nFunc:
+    self.state.push(newNpsFunction(n.nodes))
+  of nWord:
+    let v = self.state.get(n.tok.lit())
 
-        self.state.check(f.getArgs())
+    if v.kind == tFunction:
+      let f = Function(v)
 
-        if f.native():
-          f.getNative()(self.state)
-        else:
-          self.exec(f.getNodes())
+      self.state.check(f.getArgs())
+
+      if f.native():
+        f.getNative()(self.state, proc(nodes: seq[Node]) = self.exec(nodes))
       else:
-        self.state.push(v)
+        self.exec(f.getNodes())
     else:
-      raise newNpsError(fmt"Unexpected node {n}")
+      self.state.push(v)
+  #else:
+  #  raise newNpsError(fmt"Unexpected node {n}")
+
+proc exec*(self: Interpreter, nodes: openArray[Node]) =
+  for n in nodes:
+    try:
+      self.exec(n)
+    except NpsError as e:
+      case n.typ
+      of nWord, nSymbol, nString, nNumber:
+        e.addTrace(n.tok.trace())
+      of nList, nFunc:
+        e.addTrace(n.anchor.trace())
+
+      raise e

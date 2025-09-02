@@ -9,28 +9,32 @@ method copy*(self: Number): NpsValue =
   newNpsNumber(self.value)
 
 method `+`*(self: Number, b: NpsValue): NpsValue =
-  if b != tNumber:
-    raise unsOp(self, "+", b)
-
-  newNpsNumber(self.value + Number(b).value)
+  case b.kind
+  of tNumber:
+    newNpsNumber(self.value + Number(b).value)
+  else:
+    procCall `+`(self, b)
 
 method `-`*(self: Number, b: NpsValue): NpsValue =
-  if b != tNumber:
-    raise unsOp(self, "-", b)
-
-  newNpsNumber(self.value - Number(b).value)
+  case b.kind
+  of tNumber:
+    newNpsNumber(self.value - Number(b).value)
+  else:
+    procCall `-`(self, b)
 
 method `*`*(self: Number, b: NpsValue): NpsValue =
-  if b != tNumber:
-    raise unsOp(self, "*", b)
-
-  newNpsNumber(self.value * Number(b).value)
+  case b.kind
+  of tNumber:
+    newNpsNumber(self.value * Number(b).value)
+  else:
+    procCall `*`(self, b)
 
 method `/`*(self: Number, b: NpsValue): NpsValue =
-  if b != tNumber:
-    raise unsOp(self, "/", b)
-
-  newNpsNumber(self.value / Number(b).value)
+  case b.kind
+  of tNumber:
+    newNpsNumber(self.value / Number(b).value)
+  else:
+    procCall `/`(self, b)
 
 func `==`*(self: Number, b: NpsValue): bool =
   if b.kind == tNumber:
@@ -39,10 +43,8 @@ func `==`*(self: Number, b: NpsValue): bool =
   self.value == Number(b).value
 
 method format*(self: Number): string =
-  $self.value
+  result = $self.value
+  result.trimZeros('.')
 
 method debug*(self: Number): string =
-  self.format()
-
-func `$`*(self: Number): string =
   self.format()

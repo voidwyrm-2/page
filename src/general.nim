@@ -1,29 +1,16 @@
 import
-  std/strutils,
-  std/enumerate
+  std/strutils
 
 type
-  NpsError* = object of CatchableError
+  NpsError* = ref object of CatchableError
     hasPos: bool = false
-    ctxStack: seq[string]
+    stackTrace: seq[string]
 
-func newNpsError*(parent: ref NpsError, pos, ctx: string): ref NpsError =
-  if not parent.hasPos:
-    parent.msg = pos & "\n " & parent.msg
-    parent.hasPos = true
-  parent.ctxStack.add(ctx)
-  parent
+func newNpsError*(msg: string): NpsError =
+  NpsError(msg: msg)
 
-func newNpsError*(msg: string): ref NpsError =
-  (ref NpsError)(msg: msg)
+func addTrace*(self: NpsError, trace: string) =
+  self.stackTrace.add(trace)
 
 func `$`*(self: NpsError): string =
-  var strs: seq[string]
-
-  for i, ctx in enumerate(self.ctxStack):
-    strs.add(indent(ctx, i + 1))
-
-  self.msg & "\nStacktrace:\n" & strs.join("\n")
-
-func `$`*(self: ref NpsError): string =
-  $(self[])
+  self.msg & "\nStacktrace:\n" & self.stackTrace.join("\n")

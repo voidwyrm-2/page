@@ -9,6 +9,15 @@ import
 export
   general
 
+#[
+func newNpsError*(tok: Token, msg: string): NpsError =
+  result = newNpsError(msg)
+  result.addTrace(tok)
+
+func addTrace*(self: NpsError, tok: Token) =
+  self.addTrace(tok.trace())
+]#
+
 type
   TokenType* = enum
     ttNone,
@@ -51,11 +60,8 @@ func lit*(self: Token): string =
 func line*(self: Token): int =
   self.ln
 
-func efmt*(self: Token, msg: string): string =
-  fmt"Error on line {self.ln}, col {self.col}, of {self.file}: " & msg
-
-func createCtx*(self: Token, tokens: string): string =
-  fmt"(line {self.ln}, col {self.col}, of {self.file}) {tokens}"
+func trace*(self: Token): string =
+  fmt"{self.file}:{self.ln}:{self.col}"
 
 func `==`*(a: Token, b: TokenType): bool =
   a.kind == b
@@ -82,7 +88,11 @@ func newLexer*(file, text: string): Lexer =
   result.next()
 
 func error(self: Lexer, msg: string) =
-  raise newNpsError(fmt"Error on line {self.ln}, col {self.col}, of {self.file}: {msg}")
+  let e = newNpsError(msg)
+
+  e.addTrace(fmt"{self.file}:{self.ln}:{self.col}")
+
+  raise e
 
 func next(self: Lexer) =
   self.idx += 1

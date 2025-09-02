@@ -1,5 +1,6 @@
 type
-  NpsNativeProc* = proc(s: State)
+  Runner* = proc(nodes: seq[Node])
+  NpsNativeProc* = proc(s: State, runner: Runner)
 
   Function* = ref object of NpsValue
     native: NpsNativeProc
@@ -12,6 +13,9 @@ proc newNpsFunction*(args: seq[NpsType], native: NpsNativeProc): Function =
 
 proc newNpsFunction*(args: seq[NpsType], tokens: seq[Node]): Function =
   Function(kind: tFunction, tokens: tokens, args: args)
+
+proc newNpsFunction*(tokens: seq[Node]): Function =
+  newNpsFunction(@[], tokens)
 
 proc newNpsFunction*(args: seq[NpsType], file, text: string): Function =
   var
@@ -37,12 +41,8 @@ func getNodes*(self: Function): seq[Node] =
 func getNative*(self: Function): NpsNativeProc =
   self.native
 
-
 method debug*(self: Function): string =
   if self.isNative:
     "<native function>"
   else:
     "<composite function>"
-
-func `$`*(self: Function): string =
-  self.format()

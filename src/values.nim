@@ -17,17 +17,6 @@ include
     npssymbol,
     npsstring,
     npsnumber,
+    npslist,
     npsfunction
   ]
-
-type
-  Null* = ref object of NpsValue
-
-func newNpsNull*(): Null =
-  Null(kind: tNull)
-
-method debug*(self: Null): string =
-   "null"
-
-func `$`*(self: Null): string =
-  self.format()

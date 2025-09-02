@@ -18,6 +18,7 @@ type
     of nWord, nSymbol, nString, nNumber:
       tok*: Token
     of nList, nFunc:
+      anchor*: Token
       nodes*: seq[Node]
 
   Parser* = object
@@ -60,11 +61,11 @@ func parseInner(self: var Parser, endType: TokenType): seq[Node] =
       ++self.idx
     of ttBracketOpen:
       ++self.idx
-      result.add(Node(typ: nList, nodes: self.parseInner(ttBracketClose)))
+      result.add(Node(typ: nList, anchor: tok, nodes: self.parseInner(ttBracketClose)))
       ++self.idx
     of ttBraceOpen:
       ++self.idx
-      result.add(Node(typ: nFunc, nodes: self.parseInner(ttBraceClose)))
+      result.add(Node(typ: nFunc, anchor: tok, nodes: self.parseInner(ttBraceClose)))
       ++self.idx
     else:
       if tok.kind() == endType:
