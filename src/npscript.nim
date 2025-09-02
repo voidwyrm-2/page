@@ -12,6 +12,8 @@ import
   parser,
   interpreter
 
+from builtins import langVersion
+
 #[
 proc repl() =
   var noise = Noise.init()
@@ -35,6 +37,7 @@ proc repl() =
 ]#
 
 var
+  optVersion: bool = false
   optRepl: bool = false
   optTokens: bool = false
   optNodes: bool = false
@@ -57,6 +60,8 @@ proc processArgs(): seq[string] =
     case kind
     of cmdLongOption, cmdShortOption:
       case key:
+      of "version", "v":
+        optVersion = getBoolF(key, val)
       of "repl":
         optRepl = getBoolF(key, val)
       of "tokens", "t":
@@ -74,12 +79,16 @@ proc processArgs(): seq[string] =
 proc main() =
   let args = processArgs()
 
+  if optVersion:
+    echo "NPScript interpreter version " & langVersion
+    return
+
   #if optRepl:
   #  repl()
   #  return
 
   if args.len() == 0:
-    q1 "Expected 'npscript [--repl] [-t|--tokens] [-n|--nodes] <files>'"
+    q1 "Expected 'npscript [-v|--version] [--repl] [-t|--tokens] [-n|--nodes] <files>'"
 
   var tokens: seq[Token]
 

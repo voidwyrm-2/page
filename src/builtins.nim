@@ -5,7 +5,7 @@ import
   state,
   values
 
-const langVersion* = "0.4.2"
+const langVersion* = "0.4.3"
 
 let builtins* = newDict(0)
 

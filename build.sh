@@ -32,7 +32,7 @@ zcomp() {
         --os:"$1" \
         --cpu:"$2" \
         --forceBuild:on \
-        -o:"build/$1-$2/npscript$ext" \
+        -o:"out/$1-$2/npscript$ext" \
         src/npscript.nim
 }
 
@@ -42,10 +42,10 @@ if [ "$1" = "all" ]; then
     zcomp "linux" "amd64" "x86_64-linux"
     zcomp "windows" "amd64" "x86_64-windows"
 else
-    mkdir -p "build/"
+    mkdir -p "out/"
 
     nim c \
-    -o:build/npscript \
+    -o:out/npscript \
     src/npscript.nim
 fi
 

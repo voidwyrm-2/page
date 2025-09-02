@@ -3,3 +3,4 @@ npscript
 *.wasm
 commsg.txt
 build/
+out/
