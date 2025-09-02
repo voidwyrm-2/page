@@ -116,7 +116,6 @@ proc main() =
     discard
   except NpsError as e:
     q1 e
-  
 
 when isMainModule:
   main()

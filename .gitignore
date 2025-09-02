@@ -1,3 +1,5 @@
 npscript
-npscript.exe
+*.exe
+*.wasm
 commsg.txt
+build/
