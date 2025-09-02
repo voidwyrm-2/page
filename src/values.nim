@@ -20,5 +20,6 @@ include
     npsstring,
     npsnumber,
     npslist,
+    npsdict,
     npsfunction
   ]

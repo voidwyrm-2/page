@@ -5,7 +5,7 @@ import
   state,
   values
 
-const langVersion* = "0.4.0"
+const langVersion* = "0.4.1"
 
 let builtins* = newDict(0)
 
@@ -196,3 +196,29 @@ addF("load", @[tSymbol], s, _):
   let sym = Symbol(s.pop()).value()
 
   s.push(s.get(sym))
+
+# num -> dict
+# Creates a dictionary with the specified size.
+addF("dict", @[tNumber], s, _):
+  let
+    size = Number(s.pop()).value()
+    isize = int(size)
+
+  if float(isize) != size:
+    raise newNpsError("Argument must be a whole number")
+
+  let d = newNpsDictionary(newDict(isize))
+
+  s.push(d)
+
+# dict ->
+# Opens a dictionary for usage.
+addF("begin", @[tDict], s, _):
+  let d = Dictionary(s.pop())
+
+  s.dbegin(d.value())
+
+# ->
+# Closes the last opened dictionary.
+addF("end", @[], s, _):
+  discard s.dend()

@@ -48,3 +48,6 @@ method format*(self: Number): string =
 
 method debug*(self: Number): string =
   self.format()
+
+func value*(self: Number): float =
+  self.value

@@ -40,8 +40,11 @@ func dicts*(self: State): seq[Dict] =
 func stack*(self: State): seq[NpsValue] =
   self.stack
 
+func dbegin*(self: State, dict: Dict) =
+  self.dicts.add(dict)
+
 func dbegin*(self: State, size: int) =
-  self.dicts.add(newDict(size))
+  self.dbegin(newDict(size))
 
 func dend*(self: State): Dict =
   if self.dicts.len() <= self.dictMin:
