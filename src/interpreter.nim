@@ -72,7 +72,16 @@ proc exec*(self: Interpreter, nodes: openArray[Node]) =
       self.exec(n)
     except NpsExitError:
       if not self.state.isLoop:
-        raise newNpsError("'exit' cannot be used outside of a loop")
+        let e = newNpsError("'exit' cannot be used outside of a loop")
+        
+        case n.typ
+        of nWord, nSymbol, nString, nNumber:
+          e.addTrace(n.tok.trace())
+        of nList, nFunc:
+          e.addTrace(n.anchor.trace())
+        
+        raise e
+
       raise NpsExitError()
     except NpsError as e:
       case n.typ
