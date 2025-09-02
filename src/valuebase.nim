@@ -40,6 +40,12 @@ method `*`*(self: NpsValue, other: NpsValue): NpsValue {.base.} =
 method `/`*(self: NpsValue, other: NpsValue): NpsValue {.base.} =
   unsOp(self, "/", other)
 
+method `==`*(self: NpsValue, other: NpsValue): bool {.base.} =
+  false
+
+method `!=`*(self: NpsValue, other: NpsValue): bool {.base.} =
+  not (self == other)
+
 method format*(self: NpsValue): string {.base.} =
   "--nostringval--"
 

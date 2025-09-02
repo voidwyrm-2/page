@@ -36,11 +36,12 @@ method `/`*(self: Number, b: NpsValue): NpsValue =
   else:
     procCall `/`(self, b)
 
-func `==`*(self: Number, b: NpsValue): bool =
-  if b.kind == tNumber:
-    return false
-
-  self.value == Number(b).value
+method `==`*(self: Number, b: NpsValue): bool =
+  case b.kind
+  of tNumber:
+    self.value == Number(b).value
+  else:
+    procCall `==`(self, b)
 
 method format*(self: Number): string =
   result = $self.value

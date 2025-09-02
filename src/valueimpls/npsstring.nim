@@ -8,6 +8,13 @@ func newNpsString*(value: string): String =
 method copy*(self: String): NpsValue =
   newNpsString(self.value)
 
+method `==`*(self: String, b: NpsValue): bool =
+  case b.kind
+  of tString:
+    self.value == String(b).value
+  else:
+    procCall `==`(self, b)
+
 method format*(self: String): string =
   self.value
 

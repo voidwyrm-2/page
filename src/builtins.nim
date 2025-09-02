@@ -5,7 +5,7 @@ import
   state,
   values
 
-const langVersion* = "0.4.1"
+const langVersion* = "0.4.2"
 
 let builtins* = newDict(0)
 
@@ -84,7 +84,25 @@ addF("exch", @[tAny, tAny], s, _):
   s.push(b)
   s.push(a)
 
-# Math operators
+# Arithmetic operators
+
+# A B -> A == B
+# Tests the equality of two items
+addF("eq", @[tAny, tAny], s, _):
+  let
+    b = s.pop()
+    a = s.pop()
+  
+  s.push(newNpsBool(a == b))
+
+# A B -> A != B
+# Tests the inequality of two items
+addF("ne", @[tAny, tAny], s, _):
+  let
+    b = s.pop()
+    a = s.pop()
+  
+  s.push(newNpsBool(a != b))
 
 # A B -> A + B
 # Adds two values together.
@@ -157,6 +175,19 @@ addF("pstack", @[], s, _):
 
   for i in countdown(stack.len() - 1, 0):
     echo stack[i].debug()
+
+# Conditional operators
+
+addF("if", @[tBool, tFunction], s, r):
+  let
+    f = Function(s.pop())
+    cond = Bool(s.pop()).value()
+
+  if cond:
+    if f.native():
+      f.getNative()(s, r)
+    else:
+      r(f.getNodes())
 
 # Loop operators
 

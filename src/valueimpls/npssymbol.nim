@@ -8,6 +8,13 @@ func newNpsSymbol*(name: string): Symbol =
 method copy*(self: Symbol): NpsValue =
   self
 
+method `==`*(self: Symbol, b: NpsValue): bool =
+  case b.kind
+  of tSymbol:
+    self.name == Symbol(b).name
+  else:
+    procCall `==`(self, b)
+
 method format*(self: Symbol): string =
   self.name
 

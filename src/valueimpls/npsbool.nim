@@ -8,6 +8,13 @@ func newNpsBool*(value: bool): Bool =
 method copy*(self: Bool): NpsValue =
   self
 
+method `==`*(self: Bool, b: NpsValue): bool =
+  case b.kind
+  of tBool:
+    self.value == Bool(b).value
+  else:
+    procCall `==`(self, b)
+
 method format*(self: Bool): string =
   $self.value
 
