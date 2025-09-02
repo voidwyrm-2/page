@@ -13,10 +13,10 @@ type
 
 
 proc newNpsFunction*(args: seq[NpsType], native: NpsNativeProc): Function =
-  Function(kind: tFunction, native: native, args: args, isNative: true)
+  Function(kind: tFunction, native: native, args: args.reversed(), isNative: true)
 
 proc newNpsFunction*(args: seq[NpsType], tokens: seq[Node]): Function =
-  Function(kind: tFunction, tokens: tokens, args: args, isNative: false)
+  Function(kind: tFunction, tokens: tokens, args: args.reversed(), isNative: false)
 
 proc newNpsFunction*(tokens: seq[Node]): Function =
   newNpsFunction(@[], tokens)
@@ -29,10 +29,7 @@ proc newNpsFunction*(args: seq[NpsType], file, text: string): Function =
   newNpsFunction(args, parser.parse())
 
 method copy*(self: Function): NpsValue =
-  if self.isNative:
-    newNpsFunction(self.args, self.native)
-  else:
-    newNpsFunction(self.args, self.tokens)
+  self
 
 func native*(self: Function): bool =
   self.isNative

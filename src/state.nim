@@ -17,12 +17,16 @@ type
     dictMin: int
     dicts: seq[Dict]
     stack: seq[NpsValue]
+    isLoop*: bool
 
 func newDict*(size: int): Dict =
   newTable[string, NpsValue](size)
 
 func newState*(dictMin: int, dicts: varargs[Dict]): State =
-  result = State(dictMin: dictMin, dicts: newSeqOfCap[Dict](varargsLen(dicts)))
+  new result
+  result.dictMin = dictMin
+  result.dicts = newSeqOfCap[Dict](varargsLen(dicts))
+  result.isLoop = false
 
   for d in dicts:
     result.dicts.add(d)
@@ -45,6 +49,13 @@ func dend*(self: State): Dict =
   
   self.dicts.pop()
 
+func has*(self: State, name: string): bool =
+  result = false
+
+  for d in self.dicts: 
+    if d.hasKey(name):
+      return true
+
 func set*(self: State, name: string, val: NpsValue) =
   self.dicts[^1][name] = val
 
@@ -55,7 +66,7 @@ func get*(self: State, name: string): NpsValue =
 
   raise newNpsError(fmt"Undefined symbol '{name}'")
 
-func push*(self: State, val: NpsValue) =
+proc push*(self: State, val: NpsValue) =
   self.stack.add(val.copy())
 
 func pop*(self: State): NpsValue =
@@ -76,7 +87,7 @@ proc check*(self: State, items: openArray[NpsType]) =
 
     i -= 1
 
-func `$`*(self: State): string =
+proc `$`*(self: State): string =
   var items: seq[string]
 
   for item in self.stack:

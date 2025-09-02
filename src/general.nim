@@ -3,8 +3,13 @@ import
 
 type
   NpsError* = ref object of CatchableError
-    hasPos: bool = false
     stackTrace: seq[string]
+
+  NpsMetaError = ref object of CatchableError
+
+  NpsQuitError* = ref object of NpsMetaError
+
+  NpsExitError* = ref object of NpsMetaError
 
 func newNpsError*(msg: string): NpsError =
   NpsError(msg: msg)

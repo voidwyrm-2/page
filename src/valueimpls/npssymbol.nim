@@ -13,3 +13,6 @@ method format*(self: Symbol): string =
 
 method debug*(self: Symbol): string =
   "/" & self.name
+
+func value*(self: Symbol): string =
+  self.name

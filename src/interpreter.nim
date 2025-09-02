@@ -18,10 +18,16 @@ type
     state: State
 
 proc newInterpreter*(): Interpreter =
-  Interpreter(state: newState(2, builtins.builtins, newDict(0)))
+  new result
+  result.state = newState(2, builtins.builtins, newDict(0))
+
+proc newInterpreter*(state: State): Interpreter =
+  new result
+  result.state = state
 
 proc newInterpreter*(dicts: seq[Dict]): Interpreter =
-  Interpreter(state: newState(min(2, dicts.len()), dicts))
+  new result
+  result.state = newState(min(2, dicts.len()), dicts)
 
 func state*(self: Interpreter): State =
   self.state
@@ -64,6 +70,10 @@ proc exec*(self: Interpreter, nodes: openArray[Node]) =
   for n in nodes:
     try:
       self.exec(n)
+    except NpsExitError:
+      if not self.state.isLoop:
+        raise newNpsError("'exit' cannot be used outside of a loop")
+      raise NpsExitError()
     except NpsError as e:
       case n.typ
       of nWord, nSymbol, nString, nNumber:

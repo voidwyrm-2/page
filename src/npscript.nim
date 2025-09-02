@@ -112,6 +112,8 @@ proc main() =
 
   try:
     i.exec(nodes)
+  except NpsQuitError:
+    discard
   except NpsError as e:
     q1 e
   

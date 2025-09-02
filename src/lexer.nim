@@ -84,7 +84,11 @@ func `$`*(self: Token): string =
 func next(self: Lexer); # Nim, you're a modern (ish) compiled language, how is this an issue
 
 func newLexer*(file, text: string): Lexer =
-  result = Lexer(file: file, text: text, idx: -1)
+  new result
+  result.file = file
+  result.text = text
+  result.idx = -1
+  result.ln = 1
   result.next()
 
 func error(self: Lexer, msg: string) =
@@ -104,7 +108,7 @@ func next(self: Lexer) =
 
   if self.ch == '\n':
     self.ln += 1
-    self.col = 1
+    self.col = 0
 
 #func peek(self: Lexer): Option[char] =
 # if self.idx + 1 < self.text.len(): some(self.text[self.idx + 1]) else: options.none[char]()

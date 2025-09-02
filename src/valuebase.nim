@@ -8,7 +8,7 @@ type
   NpsType* = enum
     tBase,
     tAny,
-    tNull,
+    tBool,
     tSymbol,
     tString,
     tNumber,
