@@ -18,7 +18,7 @@ from builtins import langVersion
 proc repl() =
   var noise = Noise.init()
   
-  echo "NPScript REPL; type '\\exit' to exit"
+  echo "NPScript " & langVersion & " REPL; type 'quit' to exit"
 
   var
     i = newInterpreter()
@@ -41,8 +41,6 @@ proc repl() =
       break
 
     let line = noise.getLine()
-    if line == "\\exit":
-      break
 
     try:
       var
