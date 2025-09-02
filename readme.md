@@ -1,3 +1,3 @@
 # NPScript
 
-A PostScript implementation with extra builtin functions.
+A PostScript implementation with a focus on console applications.
