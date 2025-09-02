@@ -13,7 +13,7 @@ Prebuilt binaries are found in the [releases](https://github.com/voidwyrm-2/npsc
 **Prerequisites** 
 - Unix system or similar (compiling on Windows is not currently supported)
 - Git, which should be on your system already
-- Nim, which can be downloaded from [https://nim-lang.org/install.html]
+- Nim, which can be downloaded from https://nim-lang.org/install.html
 
 ```sh
 git clone https://github.com/voidwyrm-2/npscript
@@ -25,7 +25,7 @@ chmod +x build.sh
 
 Addtionally, if you want to cross-compile, you'll need 
 - Nimble, which should have come bundled with Nim
-- Zig, which can be downloaded from [https://ziglang.org/download]
+- Zig, which can be downloaded from https://ziglang.org/download
 
 ```sh
 git clone https://github.com/voidwyrm-2/npscript
