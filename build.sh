@@ -14,6 +14,12 @@
 # -D_WASI_EMULATED_SIGNAL -lwasi-emulated-signal
 # -D_WASI_EMULATED_SIGNAL -lwasi-emulated-signal
 
+tryq() {
+    if [ $? -ne 0 ]; then
+        exit 1
+    fi
+}
+
 # zcomp(os, arch, llvmTriple)
 zcomp() {
     ext=""
@@ -21,6 +27,10 @@ zcomp() {
     if [ "$1" = "windows" ]; then
         ext=".exe"
     fi
+
+    targetpair="$1-$2"
+    outpath="out/$targetpair"
+    result="$outpath/npscript$ext"
     
     nim c \
         -d:release \
@@ -32,8 +42,23 @@ zcomp() {
         --os:"$1" \
         --cpu:"$2" \
         --forceBuild:on \
-        -o:"out/$1-$2/npscript$ext" \
+        -o:"$result" \
         src/npscript.nim
+    tryq
+    
+    cp -R "$outpath" .
+    tryq
+    
+    zip -r "$targetpair" "$targetpair"
+    tryq
+
+    mv "$targetpair.zip" out/
+    tryq
+
+    rm -rf "$targetpair"
+    tryq
+
+    echo "built '$targetpair' with LLVM triple '$3'"
 }
 
 if [ "$1" = "all" ]; then
