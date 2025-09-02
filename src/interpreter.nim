@@ -18,7 +18,7 @@ type
     state: State
 
 proc newInterpreter*(): Interpreter =
-  Interpreter(state: newState(2, builtins.getBuiltins(), newDict(0)))
+  Interpreter(state: newState(2, builtins.builtins, newDict(0)))
 
 proc newInterpreter*(dicts: seq[Dict]): Interpreter =
   Interpreter(state: newState(min(2, dicts.len()), dicts))

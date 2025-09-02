@@ -1,18 +1,22 @@
 type
   Runner* = proc(nodes: seq[Node])
-  NpsNativeProc* = proc(s: State, runner: Runner)
+  NpsNativeProc* = proc(s: State, r: Runner)
 
   Function* = ref object of NpsValue
-    native: NpsNativeProc
-    tokens: seq[Node]
     args: seq[NpsType]
-    isNative: bool = false
+
+    case isNative: bool
+    of true:
+      native: NpsNativeProc
+    of false:
+    tokens: seq[Node]
+
 
 proc newNpsFunction*(args: seq[NpsType], native: NpsNativeProc): Function =
   Function(kind: tFunction, native: native, args: args, isNative: true)
 
 proc newNpsFunction*(args: seq[NpsType], tokens: seq[Node]): Function =
-  Function(kind: tFunction, tokens: tokens, args: args)
+  Function(kind: tFunction, tokens: tokens, args: args, isNative: false)
 
 proc newNpsFunction*(tokens: seq[Node]): Function =
   newNpsFunction(@[], tokens)
@@ -21,6 +25,7 @@ proc newNpsFunction*(args: seq[NpsType], file, text: string): Function =
   var
     lexer = newLexer(file, text)
     parser = initParser(lexer.lex())
+
   newNpsFunction(args, parser.parse())
 
 method copy*(self: Function): NpsValue =
