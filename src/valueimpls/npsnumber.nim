@@ -43,6 +43,20 @@ method `==`*(self: Number, b: NpsValue): bool =
   else:
     procCall `==`(self, b)
 
+method `>`*(self: Number, b: NpsValue): bool =
+  case b.kind
+  of tNumber:
+    self.value > Number(b).value
+  else:
+    procCall `>`(self, b)
+
+method `<`*(self: Number, b: NpsValue): bool =
+  case b.kind
+  of tNumber:
+    self.value < Number(b).value
+  else:
+    procCall `<`(self, b)
+
 method format*(self: Number): string =
   result = $self.value
   result.trimZeros('.')

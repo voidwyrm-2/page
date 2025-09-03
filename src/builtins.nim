@@ -1,11 +1,12 @@
 import
-  std/tables
+  std/tables,
+  std/algorithm
 
 import
   state,
   values
 
-const langVersion* = "0.5.2"
+const langVersion* = "0.5.4"
 
 let builtins* = newDict(0)
 
@@ -19,50 +20,63 @@ template addF(name: string, args: openArray[NpsType], s, r, body: untyped) =
         body
     )
 
-template addSF(name, body: string) =
-  addV(name):
-    newNpsFunction(args, body)
+
+func whole(n: Number, name: static string): int =
+  result = int(n.value())
+  
+  if float(result) != n.value():
+    raise newNpsError("Argument " & name & " must be a whole number")
+
 
 # Meta operators
 
-# -> str
+# -> version
 # Returns the current version of the language as a string.
 addV("langver"):
   newNpsString(langVersion)
 
+# A -> typeof A
+# Returns a string that describes the type of A.
+addF("type", @[tAny], s, _):
+  let tstr = $s.pop().kind
+
+  s.push(newNpsString(tstr))
+
 # ->
-# Completely exits the current program.
+# Completely stops the program.
 addF("quit", @[], _, _):
   raise NpsQuitError()
 
+# E ->
+# Completely stops the program with the exit code E.
+addF("quitn", @[tNumber], s, _):
+  let code = Number(s.pop()).whole("E")
+
+  raise NpsQuitError(code: code)
+
 # ->
-# Exits out of the current loop.
+# Exits out of the loop it's called inside of.
 addF("exit", @[], _, _):
   raise NpsExitError()
 
-# fun ->
-# Takes a function and executes it.
+# F ->
+# Takes a function F and executes it.
 addF("exec", @[tFunction], s, r):
-  let f = Function(s.pop())
+  Function(s.pop()).run(s, r)
 
-  if f.native():
-    f.getNative()(s, r)
-  else:
-    r(f.getNodes())
-
-# -> bool
+# -> false
 # Produces the boolean false singleton.
 addV("false"):
   newNpsBool(false)
 
-# -> bool
+# -> true
 # Produces the boolean true singleton.
 addV("true"):
   newNpsBool(true)
 
 # Stack operators
 
-# any ->
+# A ->
 # Discards the value on the top of the stack.
 addF("pop", @[tAny], s, _):
   discard s.pop()
@@ -84,28 +98,37 @@ addF("exch", @[tAny, tAny], s, _):
   s.push(b)
   s.push(a)
 
+# ... C R -> ...
+# Rotates the top C items on the stack up R times.
+addF("roll", @[tNumber, tNumber], s, _):
+  let
+    roll = Number(s.pop()).whole("R")
+    count = Number(s.pop()).whole("C")
+
+  var expe = newSeq[NpsType](count)
+
+  for i in 0..<expe.len():
+    expe[i] = tAny
+
+  s.check(expe)
+
+  let st = s.stack()
+
+  var sl = st[st.len() - count ..< st.len()]
+  
+  sl.rotateLeft(-roll)
+
+  var j = 0
+
+  for i in st.len() - count ..< st.len():
+    s[i] = sl[j]
+    j += 1
+
+
 # Arithmetic operators
 
-# A B -> A == B
-# Tests the equality of two items
-addF("eq", @[tAny, tAny], s, _):
-  let
-    b = s.pop()
-    a = s.pop()
-  
-  s.push(newNpsBool(a == b))
-
-# A B -> A != B
-# Tests the inequality of two items
-addF("ne", @[tAny, tAny], s, _):
-  let
-    b = s.pop()
-    a = s.pop()
-  
-  s.push(newNpsBool(a != b))
-
 # A B -> A + B
-# Adds two values together.
+# Adds A and B together.
 addF("add", @[tAny, tAny], s, _):
   let
     b = s.pop()
@@ -114,7 +137,7 @@ addF("add", @[tAny, tAny], s, _):
   s.push(a + b)
 
 # A B -> A - B
-# Substracts a value from another.
+# Substracts A from B.
 addF("sub", @[tAny, tAny], s, _):
   let
     b = s.pop()
@@ -123,7 +146,7 @@ addF("sub", @[tAny, tAny], s, _):
   s.push(a - b)
 
 # A B -> A * B
-# Multiplies two values together.
+# Multiplies A with B.
 addF("mul", @[tAny, tAny], s, _):
   let
     b = s.pop()
@@ -132,7 +155,7 @@ addF("mul", @[tAny, tAny], s, _):
   s.push(a * b)
 
 # A B -> A / B
-# Divides a value with another.
+# Divides A with B.
 addF("div", @[tAny, tAny], s, _):
   let
     b = s.pop()
@@ -140,16 +163,17 @@ addF("div", @[tAny, tAny], s, _):
   
   s.push(a / b)
 
+
 # IO operators
 
-# any ->
+# A ->
 # Takes in a value and prints it in its formatted form.
-# This function will print any value as a literal, e.g. (hello) -> hello, /dog -> dog,
+# This function will print any value as a literal, e.g. '(hello)' becomes hello, '/dog' becomes dog,
 # and will not print lists in full.
 addF("=", @[tAny], s, _):
   echo s.pop()
 
-# any ->
+# A ->
 # Takes in a value and prints it in its debug form.
 # This function will print any value as it was in code form except functions,
 # and will print lists in full.
@@ -176,23 +200,90 @@ addF("pstack", @[], s, _):
   for i in countdown(stack.len() - 1, 0):
     echo stack[i].debug()
 
+
 # Conditional operators
 
+# A B -> A == B
+# Tests the equality of A and B.
+addF("eq", @[tAny, tAny], s, _):
+  let
+    b = s.pop()
+    a = s.pop()
+  
+  s.push(newNpsBool(a == b))
+
+# A B -> A != B
+# Tests the inequality of A and B.
+addF("ne", @[tAny, tAny], s, _):
+  let
+    b = s.pop()
+    a = s.pop()
+  
+  s.push(newNpsBool(a != b))
+
+# A B -> A > B
+# Compares A and B.
+addF("gt", @[tAny, tAny], s, _):
+  let
+    b = s.pop()
+    a = s.pop()
+  
+  s.push(newNpsBool(a > b))
+
+# A B -> A > B
+# Compares A and B.
+addF("ge", @[tAny, tAny], s, _):
+  let
+    b = s.pop()
+    a = s.pop()
+  
+  s.push(newNpsBool(a >= b))
+
+# A B -> A > B
+# Compares A and B.
+addF("lt", @[tAny, tAny], s, _):
+  let
+    b = s.pop()
+    a = s.pop()
+  
+  s.push(newNpsBool(a < b))
+
+# A B -> A > B
+# Compares A and B.
+addF("le", @[tAny, tAny], s, _):
+  let
+    b = s.pop()
+    a = s.pop()
+  
+  s.push(newNpsBool(a <= b))
+
+# B F ->
+# Executes F if B is true.
 addF("if", @[tBool, tFunction], s, r):
   let
     f = Function(s.pop())
     cond = Bool(s.pop()).value()
 
   if cond:
-    if f.native():
-      f.getNative()(s, r)
-    else:
-      r(f.getNodes())
+    f.run(s, r)
+
+# B fA fB ->
+# Executes fA if B is true, otherwise executes fB.
+addF("ifelse", @[tBool, tFunction, tFunction], s, r):
+  let
+    fFalse = Function(s.pop())
+    fTrue = Function(s.pop())
+    cond = Bool(s.pop()).value()
+
+  if cond:
+    fTrue.run(s, r)
+  else:
+    fFalse.run(s, r)
 
 # Loop operators
 
-# fun ->
-# Executes fun repeatedly until 'exit' or 'quit' is called.
+# F ->
+# Executes F until 'exit' or 'quit' is called.
 addF("loop", @[tFunction], s, r):
   let f = Function(s.pop())
 
@@ -203,17 +294,41 @@ addF("loop", @[tFunction], s, r):
 
   while true:
     try:
-      if f.native():
-        f.getNative()(s, r)
-      else:
-        r(f.getNodes())
+      f.run(s, r)
     except NpsExitError:
       break
 
+# S I E F ->
+# Steps from S to E while executing F, incrementing by I each iteration.
+addF("for", @[tNumber, tNumber, tNumber, tFunction], s, r):
+  let
+    f = Function(s.pop())
+    lend = Number(s.pop()).whole("E")
+    step = Number(s.pop()).whole("I")
+    start = Number(s.pop()).whole("S")
+
+  s.isLoop = true
+
+  defer:
+    s.isLoop = false
+
+  var i = start
+
+  while i != lend + step:
+    s.push(newNpsNumber(float(i)))
+
+    try:
+      f.run(s, r)
+    except NpsExitError:
+      break
+
+    i += step
+
+
 # Dict operators
 
-# sym any ->
-# Binds the value any to the symbol sym.
+# S A ->
+# Binds A to the symbol S.
 addF("def", @[tSymbol, tAny], s, _):
   let
     val = s.pop()
@@ -221,29 +336,24 @@ addF("def", @[tSymbol, tAny], s, _):
   
   s.set(sym, val)
 
-# sym -> any
-# Pushes the value bound to sym onto the stack.
+# S -> A
+# Pushes the value bound to the symbol S onto the stack.
 addF("load", @[tSymbol], s, _):
   let sym = Symbol(s.pop()).value()
 
   s.push(s.get(sym))
 
-# num -> dict
-# Creates a dictionary with the specified size.
+# S -> D
+# Creates a dictionary D with the specified size S.
 addF("dict", @[tNumber], s, _):
   let
-    size = Number(s.pop()).value()
-    isize = int(size)
-
-  if float(isize) != size:
-    raise newNpsError("Argument must be a whole number")
-
-  let d = newNpsDictionary(newDict(isize))
+    size = Number(s.pop()).whole("S")
+    d = newNpsDictionary(newDict(int(size)))
 
   s.push(d)
 
-# dict ->
-# Opens a dictionary for usage.
+# D ->
+# Opens a dictionary D for usage.
 addF("begin", @[tDict], s, _):
   let d = Dictionary(s.pop())
 

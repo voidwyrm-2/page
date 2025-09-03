@@ -19,7 +19,28 @@ type
   NpsValue* = ref object of RootObj
     kind*: NpsType = tBase
 
-proc unsOp*(a: NpsValue, op: string, b: NpsValue) =
+func `$`*(self: NpsType): string =
+  case self
+  of tBase:
+    raise newException(Exception, "tBase should not be formatted")
+  of tAny:
+    "Any"
+  of tBool:
+    "Bool"
+  of tSymbol:
+    "Symbol"
+  of tString:
+    "String"
+  of tNumber:
+    "Number"
+  of tList:
+    "List"
+  of tDict:
+    "Dict"
+  of tFunction:
+    "Function"
+
+proc unsOp*(a: NpsValue, op: string, b: NpsValue) {.noReturn.} =
   raise newNpsError(fmt"Unsupported types for operation '{op}': {a.kind} and {b.kind}")
 
 func `==`*(a: NpsValue, b: NpsType): bool =
@@ -29,22 +50,34 @@ method copy*(self: NpsValue): NpsValue {.base.} =
   NpsValue(kind: self.kind)
 
 method `+`*(self: NpsValue, other: NpsValue): NpsValue {.base.} =
-  unsOp(self, "+", other)
+  unsOp(self, "add", other)
 
 method `-`*(self: NpsValue, other: NpsValue): NpsValue {.base.} =
-  unsOp(self, "-", other)
+  unsOp(self, "sub", other)
 
 method `*`*(self: NpsValue, other: NpsValue): NpsValue {.base.} =
-  unsOp(self, "*", other)
+  unsOp(self, "mul", other)
 
 method `/`*(self: NpsValue, other: NpsValue): NpsValue {.base.} =
-  unsOp(self, "/", other)
+  unsOp(self, "div", other)
 
 method `==`*(self: NpsValue, other: NpsValue): bool {.base.} =
   false
 
 method `!=`*(self: NpsValue, other: NpsValue): bool {.base.} =
   not (self == other)
+
+method `>`*(self: NpsValue, other: NpsValue): bool {.base.} =
+  unsOp(self, "gt", other)
+
+method `>=`*(self: NpsValue, other: NpsValue): bool {.base.} =
+  self > other or self == other
+
+method `<`*(self: NpsValue, other: NpsValue): bool {.base.} =
+  unsOp(self, "lt", other)
+
+method `<=`*(self: NpsValue, other: NpsValue): bool {.base.} =
+  self < other or self == other
 
 method format*(self: NpsValue): string {.base.} =
   "--nostringval--"

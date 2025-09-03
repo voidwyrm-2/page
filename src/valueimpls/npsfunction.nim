@@ -9,17 +9,17 @@ type
     of true:
       native: NpsNativeProc
     of false:
-    tokens: seq[Node]
+    nodes: seq[Node]
 
 
 proc newNpsFunction*(args: seq[NpsType], native: NpsNativeProc): Function =
   Function(kind: tFunction, native: native, args: args.reversed(), isNative: true)
 
-proc newNpsFunction*(args: seq[NpsType], tokens: seq[Node]): Function =
-  Function(kind: tFunction, tokens: tokens, args: args.reversed(), isNative: false)
+proc newNpsFunction*(args: seq[NpsType], nodes: seq[Node]): Function =
+  Function(kind: tFunction, nodes: nodes, args: args.reversed(), isNative: false)
 
-proc newNpsFunction*(tokens: seq[Node]): Function =
-  newNpsFunction(@[], tokens)
+proc newNpsFunction*(nodes: seq[Node]): Function =
+  newNpsFunction(@[], nodes)
 
 proc newNpsFunction*(args: seq[NpsType], file, text: string): Function =
   var
@@ -31,17 +31,15 @@ proc newNpsFunction*(args: seq[NpsType], file, text: string): Function =
 method copy*(self: Function): NpsValue =
   self
 
-func native*(self: Function): bool =
-  self.isNative
-
 func getArgs*(self: Function): seq[NpsType] =
   self.args
 
-func getNodes*(self: Function): seq[Node] =
-  self.tokens
-
-func getNative*(self: Function): NpsNativeProc =
-  self.native
+proc run*(self: Function, s: State, r: Runner) =
+  case self.isNative
+  of true:
+    self.native(s, r)
+  of false:
+    r(self.nodes)
 
 method debug*(self: Function): string =
   if self.isNative:

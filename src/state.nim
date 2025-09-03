@@ -90,6 +90,9 @@ proc check*(self: State, items: openArray[NpsType]) =
 
     i -= 1
 
+proc `[]=`*(self: State, key: int, val: sink NpsValue) =
+  self.stack[key] = val
+
 proc `$`*(self: State): string =
   var items: seq[string]
 

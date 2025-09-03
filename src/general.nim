@@ -8,6 +8,7 @@ type
   NpsMetaError = ref object of CatchableError
 
   NpsQuitError* = ref object of NpsMetaError
+    code*: int = 0
 
   NpsExitError* = ref object of NpsMetaError
 

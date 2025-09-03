@@ -47,14 +47,13 @@ proc repl() =
         l = newLexer("repl", line)
         p = initParser(l.lex())
       i.exec(p.parse())
-    except NpsQuitError:
-      break
+    except NpsQuitError as e:
+      quit e.code
     except NpsError as e:
       echo e
       errored = true
 
-    if line.len() > 0 and (not errored or line.endsWith("\\")):
-      noise.historyAdd(if line.endsWith("\\"): line[0..^1] else: line)
+    noise.historyAdd(line)
 
     errored = false
 
@@ -65,7 +64,7 @@ var
   optTokens: bool = false
   optNodes: bool = false
 
-template q1(v: untyped) =
+template q1(v: varargs[untyped]) =
   echo v
   quit 1
 
@@ -114,11 +113,11 @@ proc main() =
   let args = processArgs()
 
   if optHelp:
-    echo usage, ""
+    echo usage
     return
 
   if optVersion:
-    echo "NPScript interpreter version " & langVersion
+    echo "NPScript interpreter version ", langVersion
     return
 
   if optRepl:
@@ -126,7 +125,7 @@ proc main() =
     return
 
   if args.len() == 0:
-    q1 "No input files\n" & usage
+    q1 "No input files\n", usage
 
   var tokens: seq[Token]
 
@@ -159,8 +158,8 @@ proc main() =
 
   try:
     i.exec(nodes)
-  except NpsQuitError:
-    discard
+  except NpsQuitError as e:
+    quit e.code
   except NpsError as e:
     q1 e
 

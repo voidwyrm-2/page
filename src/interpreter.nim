@@ -57,10 +57,7 @@ proc exec(self: Interpreter, n: Node) =
 
       self.state.check(f.getArgs())
 
-      if f.native():
-        f.getNative()(self.state, proc(nodes: seq[Node]) = self.exec(nodes))
-      else:
-        self.exec(f.getNodes())
+      f.run(self.state, proc(nodes: seq[Node]) = self.exec(nodes))
     else:
       self.state.push(v)
   #else:
