@@ -1,6 +1,8 @@
 import
   std/tables,
-  std/algorithm
+  std/algorithm,
+  std/strutils,
+  std/strformat
 
 import
   state,
@@ -9,7 +11,7 @@ import
     common,
     libstrings]
 
-const langVersion* = "0.5.11"
+const langVersion* = "0.5.12"
 
 let builtins* = newDict(0)
 
@@ -413,3 +415,20 @@ addS("scoped", @[tDict, tFunction]):
 addF("symbols", @[], s, _):
   for symbol in s.symbols():
     echo symbol
+
+
+# Misc operators
+
+# S -> N
+# Converts a string S into a number N.
+addF("cvi", @[tString], s, _):
+  let str = String(s.pop()).value()
+
+  var n: float
+
+  try:
+    n = parseFloat(str)
+  except ValueError:
+    raise newNpsError(fmt"Cannot convert '{str}' into a number")
+
+  s.push(newNpsNumber(n))
