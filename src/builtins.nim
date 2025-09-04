@@ -11,7 +11,7 @@ import
     common,
     libstrings]
 
-const langVersion* = "0.6.0"
+const langVersion* = "0.6.1"
 
 let builtins* = newDict(0)
 
@@ -51,7 +51,7 @@ addF("type", @[tAny], s, _):
   s.push(newNpsString(tstr))
 
 # P -> D
-# Evaluates a path P as a NPScript file and returns the value of the 'export' symbol inside it as D.
+# Evaluates a path P as a NPScript file and returns the value D of the 'export' symbol inside of it.
 addF("import", @[tString], s, _):
   let path = String(s.pop()).value
 
