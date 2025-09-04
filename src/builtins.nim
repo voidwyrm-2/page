@@ -11,7 +11,7 @@ import
     common,
     libstrings]
 
-const langVersion* = "0.6.1"
+const langVersion* = "0.7.0"
 
 let builtins* = newDict(0)
 
@@ -196,6 +196,60 @@ addF("=", @[tAny], s, _):
 # and will print lists in full.
 addF("==", @[tAny], s, _):
   echo s.pop().debug()
+
+# S ->
+addF("printf", @[tString], s, _):
+  let fmt = String(s.pop()).value()
+
+  var
+    parts: seq[tuple[s: string, f: bool]]
+    formatters = 0
+    formatting = false
+
+  for ch in fmt:
+    if formatting:
+      case ch
+      of '%':
+        parts.add(($ch, false))
+      of 'f', 'd':
+        parts.add(($ch, true))
+      else:
+        raise newNpsError(fmt"Invalid formatting specifier '{ch}'")
+
+      formatters += 1
+
+      formatting = false
+    elif ch == '%':
+      formatting = true
+    else:
+      parts.add(($ch, false))
+
+  var
+    values = newSeqOfCap[NpsValue](formatters)
+    i = 0
+    formatted = ""
+
+  for _ in 0..<formatters:
+    values.add(s.pop())
+
+  values.reverse()
+
+  for p in parts:
+    if p.f:
+      case p.s
+      of "f":
+        formatted &= values[i].format()
+      of "d":
+        formatted &= values[i].debug()
+      else:
+        formatted &= p.s
+      
+      i += 1
+    else:
+      formatted &= p.s
+
+  stdout.write formatted
+  stdout.flushFile()
 
 # ->
 # Prints the stack without effecting it.
