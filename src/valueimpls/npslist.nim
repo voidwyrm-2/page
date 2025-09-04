@@ -14,3 +14,6 @@ method debug*(self: List): string =
       val.debug()
 
   "[" & fmtItems.join(" ") & "]"
+
+func value*(self: List): seq[NpsValue] =
+  self.items

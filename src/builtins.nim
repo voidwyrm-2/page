@@ -6,7 +6,7 @@ import
   state,
   values
 
-const langVersion* = "0.5.4"
+const langVersion* = "0.5.5"
 
 let builtins* = newDict(0)
 
@@ -323,6 +323,21 @@ addF("for", @[tNumber, tNumber, tNumber, tFunction], s, r):
       break
 
     i += step
+
+# L F ->
+# Iterates over L, putting each item on the stack then executing F.
+addF("forall", @[tList, tFunction], s, r):
+  let
+    f = Function(s.pop())
+    l = List(s.pop())
+
+  for item in l.value():
+    s.push(item)
+
+    try:
+      f.run(s, r)
+    except NpsExitError:
+      break
 
 
 # Dict operators
