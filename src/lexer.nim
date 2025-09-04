@@ -129,12 +129,40 @@ func collectString(self: Lexer): Token =
     startCol = self.col
     startLn = self.ln
 
-  var lit = ""
+  var
+    escaped = false
+    lit = ""
 
   self.next()
 
-  while not self.eof and self.ch != ')':
-    lit &= $self.ch
+  while not self.eof:
+    let ch = self.ch
+
+    if escaped:
+      case ch
+      of '\\', '(', ')':
+        lit &= ch
+      of 'n':
+        lit &= '\n'
+      of 'r':
+        lit &= '\r'
+      of 't':
+        lit &= '\t'
+      of 'v':
+        lit &= '\v'
+      of 'a':
+        lit &= '\a'
+      else:
+        self.error(fmt"Invalid escaped charater '{ch}'")
+    elif ch == '\\':
+      escaped = true
+    elif ch == '(':
+      self.error("'(' should be escaped inside of strings")
+    elif ch == ')':
+      break
+    else:
+      lit &= ch
+
     self.next()
 
   if self.ch != ')':
