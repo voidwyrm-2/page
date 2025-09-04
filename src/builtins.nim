@@ -9,7 +9,7 @@ import
     common,
     libstrings]
 
-const langVersion* = "0.5.10"
+const langVersion* = "0.5.11"
 
 let builtins* = newDict(0)
 
@@ -349,6 +349,11 @@ addF("forall", @[tList, tFunction], s, r):
   let
     f = Function(s.pop())
     l = List(s.pop())
+
+  s.isLoop = true
+
+  defer:
+    s.isLoop = false
 
   for item in l.value():
     s.push(item)
