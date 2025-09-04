@@ -9,7 +9,7 @@ import
     common,
     libstrings]
 
-const langVersion* = "0.5.9"
+const langVersion* = "0.5.10"
 
 let builtins* = newDict(0)
 
