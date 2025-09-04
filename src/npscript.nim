@@ -45,7 +45,7 @@ proc repl() =
     try:
       var
         l = newLexer("repl", line)
-        p = initParser(l.lex())
+        p = newParser(l.lex())
       i.exec(p.parse())
     except NpsQuitError as e:
       quit e.code
@@ -142,7 +142,7 @@ proc main() =
       echo t
 
   var
-    p = initParser(tokens)
+    p = newParser(tokens)
     nodes: seq[Node]
 
   try:

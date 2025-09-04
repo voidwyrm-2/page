@@ -18,6 +18,7 @@ type
     dicts: seq[Dict]
     stack: seq[NpsValue]
     isLoop*: bool
+    codeEval*: proc(file, text: string): State
 
 func newDict*(size: int): Dict =
   newTable[string, NpsValue](size)
@@ -55,7 +56,7 @@ func dend*(self: State): Dict =
 func has*(self: State, name: string): bool =
   result = false
 
-  for d in self.dicts: 
+  for d in self.dicts:
     if d.hasKey(name):
       return true
 
@@ -63,7 +64,7 @@ func set*(self: State, name: string, val: NpsValue) =
   self.dicts[^1][name] = val
 
 func get*(self: State, name: string): NpsValue =
-  for d in self.dicts: 
+  for d in self.dicts:
     if d.hasKey(name):
       return d[name]
 
@@ -90,7 +91,7 @@ proc check*(self: State, items: openArray[NpsType]) =
 
     i -= 1
 
-proc symbols*(self: State): seq[string] =
+func symbols*(self: State): seq[string] =
   for key in self.dicts[^1].keys:
     result.add(key)
 

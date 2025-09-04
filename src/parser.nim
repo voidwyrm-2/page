@@ -21,7 +21,7 @@ type
       anchor*: Token
       nodes*: seq[Node]
 
-  Parser* = object
+  Parser* = ref object
     toks: seq[Token]
     idx: int
 
@@ -39,10 +39,10 @@ proc `$`*(self: Node): string =
 
   result &= ")"
 
-func initParser*(toks: seq[Token]): Parser =
+func newParser*(toks: seq[Token]): Parser =
   Parser(toks: toks)
 
-func parseInner(self: var Parser, endType: TokenType): seq[Node] =
+func parseInner(self: Parser, endType: TokenType): seq[Node] =
   while self.idx < self.toks.len():
     let tok = self.toks[self.idx]
 
@@ -73,5 +73,5 @@ func parseInner(self: var Parser, endType: TokenType): seq[Node] =
 
       raise newNpsError(fmt"Unexpected token {tok.kind()} == {endType}? {tok.kind() == endType} '{tok.dbgLit()}'")
 
-func parse*(self: var Parser): seq[Node] =
+func parse*(self: Parser): seq[Node] =
   self.parseInner(ttNone)

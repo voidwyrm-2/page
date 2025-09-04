@@ -24,7 +24,7 @@ proc newNpsFunction*(nodes: seq[Node]): Function =
 proc newNpsFunction*(args: seq[NpsType], file, text: string): Function =
   var
     lexer = newLexer(file, text)
-    parser = initParser(lexer.lex())
+    parser = newParser(lexer.lex())
 
   newNpsFunction(args, parser.parse())
 

@@ -11,7 +11,7 @@ import
     common,
     libstrings]
 
-const langVersion* = "0.5.13"
+const langVersion* = "0.6.0"
 
 let builtins* = newDict(0)
 
@@ -23,6 +23,10 @@ template addF(name: string, args: openArray[NpsType], s, r, body: untyped) =
 
 template addS(name: string, args: openArray[NpsType], body: string) =
   addS(builtins, "builtins.nps", name, args, body)
+
+
+func `$`[T: CatchableError](e: ref T): string =
+  e.msg
 
 
 # Libraries
@@ -46,6 +50,25 @@ addF("type", @[tAny], s, _):
 
   s.push(newNpsString(tstr))
 
+# P -> D
+# Evaluates a path P as a NPScript file and returns the value of the 'export' symbol inside it as D.
+addF("import", @[tString], s, _):
+  let path = String(s.pop()).value
+
+  var content: string
+
+  try:
+    content = readFile path
+  except IOError as e:
+    raise newNpsError(fmt"Could not read from '{path}':" & "\n" & $e)
+
+  let substate = s.codeEval(path, content)
+
+  if not substate.has("export"):
+    raise newNpsError("Symbol 'export' must be defined in imported modules")
+
+  s.push(substate.get("export"))
+
 # ->
 # Completely stops the program.
 addF("quit", @[], _, _):
@@ -67,16 +90,6 @@ addF("exit", @[], _, _):
 # Takes a function F and executes it.
 addF("exec", @[tFunction], s, r):
   Function(s.pop()).run(s, r)
-
-# -> false
-# Produces the boolean false singleton.
-addV("false"):
-  newNpsBool(false)
-
-# -> true
-# Produces the boolean true singleton.
-addV("true"):
-  newNpsBool(true)
 
 # Stack operators
 
@@ -207,9 +220,14 @@ addF("pstack", @[], s, _):
 # P -> S
 # Reads a path P and returns the result S.
 addF("readf", @[tString], s, _):
-  let
-    path = String(s.pop()).value()
+  let path = String(s.pop()).value
+  
+  var content: string
+
+  try:
     content = readFile path
+  except IOError as e:
+    raise newNpsError(fmt"Could not read from '{path}':" & "\n" & $e)
 
   s.push(newNpsString(content))
 
@@ -217,10 +235,13 @@ addF("readf", @[tString], s, _):
 # Writes a string S to a path P.
 addF("writef", @[tString, tString], s, _):
   let
-    path = String(s.pop()).value()
-    content = String(s.pop()).value()
+    path = String(s.pop()).value
+    content = String(s.pop()).value
 
-  writeFile(path, content)
+  try:
+    writeFile(path, content)
+  except IOError as e:
+    raise newNpsError(fmt"Could not write to '{path}':" & "\n" & $e)
 
 # Conditional operators
 
@@ -283,7 +304,7 @@ addF("le", @[tAny, tAny], s, _):
 addF("if", @[tBool, tFunction], s, r):
   let
     f = Function(s.pop())
-    cond = Bool(s.pop()).value()
+    cond = Bool(s.pop()).value
 
   if cond:
     f.run(s, r)
@@ -294,7 +315,7 @@ addF("ifelse", @[tBool, tFunction, tFunction], s, r):
   let
     fFalse = Function(s.pop())
     fTrue = Function(s.pop())
-    cond = Bool(s.pop()).value()
+    cond = Bool(s.pop()).value
 
   if cond:
     fTrue.run(s, r)
@@ -361,7 +382,7 @@ addF("forall", @[tList, tFunction], s, r):
   defer:
     s.isLoop = prevLoopState
 
-  for item in l.value():
+  for item in l.value:
     s.push(item)
 
     try:
@@ -377,14 +398,14 @@ addF("forall", @[tList, tFunction], s, r):
 addF("def", @[tSymbol, tAny], s, _):
   let
     val = s.pop()
-    sym = Symbol(s.pop()).value()
+    sym = Symbol(s.pop()).value
   
   s.set(sym, val)
 
 # S -> A
 # Pushes the value bound to the symbol S onto the stack.
 addF("load", @[tSymbol], s, _):
-  let sym = Symbol(s.pop()).value()
+  let sym = Symbol(s.pop()).value
 
   s.push(s.get(sym))
 
@@ -402,7 +423,7 @@ addF("dict", @[tNumber], s, _):
 addF("begin", @[tDict], s, _):
   let d = Dictionary(s.pop())
 
-  s.dbegin(d.value())
+  s.dbegin(d.value)
 
 # ->
 # Closes the last opened dictionary.
@@ -423,10 +444,20 @@ addF("symbols", @[], s, _):
 
 # Misc operators
 
+# -> false
+# Produces the boolean false singleton.
+addV("false"):
+  newNpsBool(false)
+
+# -> true
+# Produces the boolean true singleton.
+addV("true"):
+  newNpsBool(true)
+
 # S -> N
 # Converts a string S into a number N.
 addF("cvi", @[tString], s, _):
-  let str = String(s.pop()).value()
+  let str = String(s.pop()).value
 
   var n: float
 

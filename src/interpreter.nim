@@ -6,7 +6,7 @@ import
   values,
   parser
 
-from lexer import lit, trace
+from lexer import lit, trace, newLexer, lex
 
 from builtins import nil
 
@@ -17,9 +17,12 @@ type
   Interpreter* = ref object
     state: State
 
+proc codeEvaler(file, text: string): State;
+
 proc newInterpreter*(): Interpreter =
   new result
   result.state = newState(1, builtins.builtins)
+  result.state.codeEval = codeEvaler
 
 proc newInterpreter*(state: State): Interpreter =
   new result
@@ -88,3 +91,14 @@ proc exec*(self: Interpreter, nodes: openArray[Node]) =
         e.addTrace(n.anchor.trace())
 
       raise e
+
+
+proc codeEvaler(file, text: string): State =
+  result = newState(1, builtins.builtins)
+  
+  let
+    l = newLexer(file, text)
+    p = newParser(l.lex())
+    i = newInterpreter(result)
+
+  i.exec(p.parse())
