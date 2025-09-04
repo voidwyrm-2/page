@@ -1,0 +1,1 @@
+npscript math.nps
