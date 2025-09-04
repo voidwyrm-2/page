@@ -154,6 +154,8 @@ func collectString(self: Lexer): Token =
         lit &= '\a'
       else:
         self.error(fmt"Invalid escaped charater '{ch}'")
+
+      escaped = false
     elif ch == '\\':
       escaped = true
     elif ch == '(':
