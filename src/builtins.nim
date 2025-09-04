@@ -4,28 +4,30 @@ import
 
 import
   state,
-  values
+  values,
+  libraries/[
+    common,
+    libstrings]
 
-const langVersion* = "0.5.5"
+const langVersion* = "0.5.6"
 
 let builtins* = newDict(0)
 
 template addV(name: string, item: NpsValue) =
-  builtins[name] = item
+  addV(builtins, name, item)
 
 template addF(name: string, args: openArray[NpsType], s, r, body: untyped) =
-  addV(name):
-    newNpsFunction(args,
-      proc(s: State, r: Runner) =
-        body
-    )
+  addF(builtins, name, args, s, r, body)
+
+template addS(name: string, args: openArray[NpsType], body: string) =
+  addS(builtins, "builtins.nps", name, args, body)
 
 
-func whole(n: Number, name: static string): int =
-  result = int(n.value())
-  
-  if float(result) != n.value():
-    raise newNpsError("Argument " & name & " must be a whole number")
+# Libraries
+
+# Functions related to string handling and processing.
+addV("~strings"):
+  newNpsDictionary(libstrings.lib)
 
 
 # Meta operators
@@ -378,3 +380,14 @@ addF("begin", @[tDict], s, _):
 # Closes the last opened dictionary.
 addF("end", @[], s, _):
   discard s.dend()
+
+# D F ->
+# Takes a dictionary D, opens D, executes F, then closes D.
+addS("scoped", @[tDict, tFunction]):
+  "exch begin exec end"
+
+# ->
+# Shows the symbols inside the last opened dictionary.
+addF("symbols", @[], s, _):
+  for symbol in s.symbols():
+    echo symbol

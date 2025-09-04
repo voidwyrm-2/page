@@ -19,7 +19,7 @@ type
 
 proc newInterpreter*(): Interpreter =
   new result
-  result.state = newState(2, builtins.builtins, newDict(0))
+  result.state = newState(1, builtins.builtins)
 
 proc newInterpreter*(state: State): Interpreter =
   new result

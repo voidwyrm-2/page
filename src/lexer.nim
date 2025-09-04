@@ -119,8 +119,8 @@ func `&&=`(a: var bool, b: bool) =
 const nonWordChars = {'%', '/', '(', ')', '[', ']', '{', '}'}
 
 func isWordChar(self: Lexer): bool =
-  result = int(self.ch) > 37
-  result &&= int(self.ch) < 126
+  result = int(self.ch) > 32
+  result &&= int(self.ch) < 127
   result &&= not self.ch.isSpaceAscii()
   result &&= self.ch notin nonWordChars
 

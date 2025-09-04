@@ -20,3 +20,6 @@ method format*(self: String): string =
 
 method debug*(self: String): string =
   "(" & self.value & ")"
+
+func value*(self: String): string =
+  self.value

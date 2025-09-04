@@ -31,7 +31,7 @@ func newState*(dictMin: int, dicts: varargs[Dict]): State =
   for d in dicts:
     result.dicts.add(d)
 
-  for _ in 0 .. max(0, dictMin - varargsLen(dicts)):
+  for i in 0 ..< max(-1, dictMin - varargsLen(dicts) - 1):
     result.dicts.add(newDict(0))
 
 func dicts*(self: State): seq[Dict] =
@@ -89,6 +89,10 @@ proc check*(self: State, items: openArray[NpsType]) =
       raise newNpsError(fmt"Expected type {pst} for stack position {i}, but found type {self.stack[i].kind} instead")
 
     i -= 1
+
+proc symbols*(self: State): seq[string] =
+  for key in self.dicts[^1].keys:
+    result.add(key)
 
 proc `[]=`*(self: State, key: int, val: sink NpsValue) =
   self.stack[key] = val
