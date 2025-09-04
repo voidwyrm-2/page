@@ -9,7 +9,7 @@ import
     common,
     libstrings]
 
-const langVersion* = "0.5.6"
+const langVersion* = "0.5.7"
 
 let builtins* = newDict(0)
 
@@ -202,6 +202,23 @@ addF("pstack", @[], s, _):
   for i in countdown(stack.len() - 1, 0):
     echo stack[i].debug()
 
+# P -> S
+# Reads a path P and returns the result S.
+addF("readf", @[tString], s, _):
+  let
+    path = String(s.pop()).value()
+    content = readFile path
+
+  s.push(newNpsString(content))
+
+# S P ->
+# Writes a string S to a path P.
+addF("writef", @[tString, tString], s, _):
+  let
+    path = String(s.pop()).value()
+    content = String(s.pop()).value()
+
+  writeFile(path, content)
 
 # Conditional operators
 
