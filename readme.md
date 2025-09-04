@@ -19,7 +19,7 @@ Prebuilt binaries are found in the [releases](https://github.com/voidwyrm-2/npsc
 ```sh
 git clone https://github.com/voidwyrm-2/npscript
 cd npscript
-nimble install -l noise
+nimble install noise
 chmod +x build.sh
 ./build.sh
 ./out/npscript -v
