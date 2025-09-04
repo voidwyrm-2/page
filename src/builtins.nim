@@ -11,7 +11,7 @@ import
     common,
     libstrings]
 
-const langVersion* = "0.5.12"
+const langVersion* = "0.5.13"
 
 let builtins* = newDict(0)
 
@@ -306,12 +306,14 @@ addF("ifelse", @[tBool, tFunction, tFunction], s, r):
 # F ->
 # Executes F until 'exit' or 'quit' is called.
 addF("loop", @[tFunction], s, r):
-  let f = Function(s.pop())
+  let
+    f = Function(s.pop())
+    prevLoopState = s.isLoop
 
   s.isLoop = true
 
   defer:
-    s.isLoop = false
+    s.isLoop = prevLoopState
 
   while true:
     try:
@@ -327,11 +329,12 @@ addF("for", @[tNumber, tNumber, tNumber, tFunction], s, r):
     lend = Number(s.pop()).whole("E")
     step = Number(s.pop()).whole("I")
     start = Number(s.pop()).whole("S")
+    prevLoopState = s.isLoop
 
   s.isLoop = true
 
   defer:
-    s.isLoop = false
+    s.isLoop = prevLoopState
 
   var i = start
 
@@ -351,11 +354,12 @@ addF("forall", @[tList, tFunction], s, r):
   let
     f = Function(s.pop())
     l = List(s.pop())
+    prevLoopState = s.isLoop
 
   s.isLoop = true
 
   defer:
-    s.isLoop = false
+    s.isLoop = prevLoopState
 
   for item in l.value():
     s.push(item)
