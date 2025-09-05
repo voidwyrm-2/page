@@ -6,7 +6,7 @@ A PostScript implementation with a focus on console applications.
 
 ### Prebuilt binaries
 
-Prebuilt binaries are found in the [releases](https://github.com/voidwyrm-2/npscript/releases/latest).
+Prebuilt binaries can be downloaded from the [releases](https://github.com/voidwyrm-2/npscript/releases/latest).
 
 ### Compiling locally
 
