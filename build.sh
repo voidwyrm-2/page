@@ -1,23 +1,49 @@
-#nim c \
-#    --cc:clang \
-#    --clang.exe:"emcc" \
-#    --clang.linkerexe:"emcc" \
-#    --passC:"-static" \
-#    --passL:"-static" \
-#    --os:linux \
-#    --cpu:wasm32 \
-#    --forceBuild:on \
-#    --opt:speed \
-#    --o:npscript_exe \
-#    src/npscript.nim
-
-# -D_WASI_EMULATED_SIGNAL -lwasi-emulated-signal
-# -D_WASI_EMULATED_SIGNAL -lwasi-emulated-signal
-
 tryq() {
     if [ $? -ne 0 ]; then
         exit 1
     fi
+}
+
+compwasi() {
+    targetpair="wasm32-wasi"
+    outpath="out/$targetpair"
+    result="$outpath/npscript.wasm"
+
+    nim c \
+        -d:release \
+        --cc:clang \
+        --clang.exe:emcc \
+        --clang.linkerexe:emcc \
+        --clang.cpp.exe:emcc \
+        --clang.cpp.linkerexe:emcc \
+        --passC:"-sPURE_WASI=1" \
+        --passL:"-sPURE_WASI=1" \
+        -d:wasi \
+        --mm:arc \
+        -d:useMalloc \
+        -d:noSignalHandler \
+        --threads:off \
+        --noMain \
+        --os:any \
+        --cpu:wasm32 \
+        --forceBuild:on \
+        -o:"$result" \
+        src/npscript.nim
+    tryq
+    
+    cp -R "$outpath" .
+    tryq
+    
+    zip -r "$targetpair" "$targetpair"
+    tryq
+    
+    mv "$targetpair.zip" out/
+    tryq
+    
+    rm -rf "$targetpair"
+    tryq
+
+    echo "built '$targetpair' (any+wasm32)"
 }
 
 # zcomp(os, arch, llvmTriple)
@@ -66,6 +92,8 @@ if [ "$1" = "all" ]; then
     zcomp "linux" "arm64" "aarch64-linux"
     zcomp "linux" "amd64" "x86_64-linux"
     zcomp "windows" "amd64" "x86_64-windows"
+elif [ "$1" = "wasi" ]; then
+    compwasi
 else
     mkdir -p "out/"
 

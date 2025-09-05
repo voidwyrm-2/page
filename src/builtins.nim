@@ -1,17 +1,20 @@
 import
-  std/tables,
-  std/algorithm,
-  std/strutils,
-  std/strformat
+  std/[
+    tables,
+    algorithm,
+    strutils,
+    strformat
+  ]
 
 import
   state,
   values,
   libraries/[
     common,
-    libstrings]
+    libstrings
+  ]
 
-const langVersion* = "0.7.0"
+const langVersion* = "0.8.3"
 
 let builtins* = newDict(0)
 

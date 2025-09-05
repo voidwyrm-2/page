@@ -26,7 +26,7 @@ chmod +x build.sh
 ./out/npscript --repl
 ```
 
-Addtionally, if you want to cross-compile, you'll need 
+Addtionally, if you want to cross-compile, you'll need
 - Zig, which can be downloaded from https://ziglang.org/download
 
 ```sh
@@ -35,4 +35,14 @@ cd npscript
 nimble install zigcc
 chmod +x build.sh
 ./build.sh all
+```
+
+For builting for WASM, you'll need
+- Emscripten, which can be downloaded from https://emscripten.org/docs/getting_started/downloads.html
+
+```sh
+git clone https://github.com/voidwyrm-2/npscript
+cd npscript
+chmod +x build.sh
+./build.sh wasi
 ```
