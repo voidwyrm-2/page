@@ -1,5 +1,5 @@
-import
-  std/strutils
+import std/strutils
+
 
 type
   NpsError* = ref object of CatchableError

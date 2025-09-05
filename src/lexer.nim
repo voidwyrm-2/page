@@ -1,13 +1,13 @@
-import
-  std/tables,
-  std/strformat,
-  std/strutils
+import std/[
+  tables,
+  strformat,
+  strutils
+]
 
-import
-  general
+import general
 
-export
-  general
+export general
+
 
 #[
 func newNpsError*(tok: Token, msg: string): NpsError =
@@ -81,7 +81,7 @@ func dbgLit*(self: Token): string =
 func `$`*(self: Token): string =
   "{" & fmt"{self.kind} `{self.lit}` {self.col} {self.ln} '{self.file}'" & "}"
 
-func next(self: Lexer); # Nim, you're a modern (ish) compiled language, how is this an issue
+func next(self: Lexer) # Nim, you're a modern (ish) compiled language, how is this an issue
 
 func newLexer*(file, text: string): Lexer =
   new result

@@ -1,12 +1,10 @@
 when not defined(wasm32):
-  import
-    std/[
-      strformat,
-      os
-    ]
+  import std/[
+    strformat,
+    os
+  ]
 
-  import
-    pkg/Noise
+  import pkg/Noise
 
 import
   argparse,
@@ -17,6 +15,7 @@ import
   interpreter
 
 from builtins import langVersion
+
 
 template q1(v: varargs[untyped]) =
   stderr.writeLine v

@@ -1,7 +1,8 @@
-import
-  std/sugar,
-  std/strutils,
-  std/algorithm
+import std/[
+  sugar,
+  strutils,
+  algorithm
+]
 
 import
   valuebase,
@@ -13,13 +14,12 @@ export
   general,
   valuebase
 
-include
-  valueimpls / [
-    npsbool,
-    npssymbol,
-    npsstring,
-    npsnumber,
-    npslist,
-    npsdict,
-    npsfunction
-  ]
+include valueimpls/[
+  npsbool,
+  npssymbol,
+  npsstring,
+  npsnumber,
+  npslist,
+  npsdict,
+  npsfunction
+]

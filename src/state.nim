@@ -1,14 +1,15 @@
-import
-  std/tables,
-  std/strutils,
-  std/strformat
+import std/[
+  tables,
+  strutils,
+  strformat
+]
 
 import
   general,
   valuebase
 
-export
-  general
+export general
+
 
 type
   Dict* = TableRef[string, NpsValue]

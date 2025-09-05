@@ -1,8 +1,7 @@
-import
-  std/strformat
+import std/strformat
 
-import
-  general
+import general
+
 
 type
   NpsType* = enum

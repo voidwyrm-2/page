@@ -1,17 +1,21 @@
-import
-  std/strutils
+import std/strutils
 
 import
   state,
   values,
   parser
 
-from lexer import lit, trace, newLexer, lex
+from lexer import
+  lit,
+  trace,
+  newLexer,
+  lex
 
 from builtins import nil
 
 export
   values
+
 
 type
   Interpreter* = ref object
@@ -35,7 +39,7 @@ proc newInterpreter*(dicts: seq[Dict]): Interpreter =
 func state*(self: Interpreter): State =
   self.state
 
-proc exec*(self: Interpreter, nodes: openArray[Node]);
+proc exec*(self: Interpreter, nodes: openArray[Node])
 
 proc exec(self: Interpreter, n: Node) =
   case n.typ

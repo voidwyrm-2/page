@@ -1,8 +1,7 @@
-import
-  std/strformat
+import std/strformat
 
-import
-  lexer
+import lexer
+
 
 type
   NodeType* = enum

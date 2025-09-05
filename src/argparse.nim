@@ -1,9 +1,10 @@
-import  std/[
+import std/[
   tables,
   strutils,
   strformat,
   sequtils
 ]
+
 
 type
   ArgparseError* = object of CatchableError
