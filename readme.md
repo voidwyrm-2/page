@@ -40,6 +40,8 @@ chmod +x build.sh
 For building for WASM, you'll need
 - Emscripten, which can be downloaded from https://emscripten.org/docs/getting_started/downloads.html
 
+**NOTICE: while NPScript can be compiled to WASM, functionality is very limited**
+
 ```sh
 git clone https://github.com/voidwyrm-2/npscript
 cd npscript
