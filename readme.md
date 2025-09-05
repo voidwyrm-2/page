@@ -34,7 +34,7 @@ git clone https://github.com/voidwyrm-2/npscript
 cd npscript
 nimble install zigcc
 chmod +x build.sh
-./build.sh all
+./build.sh native
 ```
 
 For builting for WASM, you'll need

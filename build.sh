@@ -87,7 +87,7 @@ zcomp() {
     echo "built '$targetpair' with LLVM triple '$3'"
 }
 
-if [ "$1" = "all" ]; then
+if [ "$1" = "native" ]; then
     zcomp "macosx" "arm64" "aarch64-macos"
     zcomp "linux" "arm64" "aarch64-linux"
     zcomp "linux" "amd64" "x86_64-linux"
