@@ -37,7 +37,7 @@ chmod +x build.sh
 ./build.sh native
 ```
 
-For builting for WASM, you'll need
+For building for WASM, you'll need
 - Emscripten, which can be downloaded from https://emscripten.org/docs/getting_started/downloads.html
 
 ```sh
