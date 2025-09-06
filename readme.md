@@ -26,7 +26,7 @@ chmod +x build.sh
 ./out/npscript --repl
 ```
 
-Addtionally, if you want to cross-compile, you'll need
+Addtionally, if you want to cross-compile or build in release mode, you'll need
 - Zig, which can be downloaded from https://ziglang.org/download
 
 ```sh
@@ -35,6 +35,19 @@ cd npscript
 nimble install zigcc
 chmod +x build.sh
 ./build.sh native
+```
+
+For building for Mac, you'll need
+- A MacOS system, because of library issues
+- Zig, which can be downloaded from https://ziglang.org/download
+
+```sh
+git clone https://github.com/voidwyrm-2/npscript
+cd npscript
+xcode-select --install
+nimble install zigcc
+chmod +x build.sh
+./build.sh macos
 ```
 
 For building for WASM, you'll need

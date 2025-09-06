@@ -46,6 +46,36 @@ compwasi() {
     echo "built '$targetpair' (any+wasm32)"
 }
 
+compmacos() {
+    targetpair="macosx-arm64"
+    outpath="out/$targetpair"
+    result="$outpath/npscript"
+    
+    nim c \
+        -d:release \
+        --cc:clang \
+        --clang.exe:"zigcc" \
+        --clang.linkerexe:"zigcc" \
+        --forceBuild:on \
+        -o:"$result" \
+        src/npscript.nim
+    tryq
+    
+    cp -R "$outpath" .
+    tryq
+    
+    zip -r "$targetpair" "$targetpair"
+    tryq
+
+    mv "$targetpair.zip" out/
+    tryq
+
+    rm -rf "$targetpair"
+    tryq
+
+    echo "built '$targetpair' (macosx+arm64)"
+}
+
 # zcomp(os, arch, llvmTriple)
 zcomp() {
     ext=""
@@ -63,8 +93,8 @@ zcomp() {
         --cc:clang \
         --clang.exe:"zigcc" \
         --clang.linkerexe:"zigcc" \
-        --passC:"-target $3" \
-        --passL:"-target $3" \
+        --passC:"-target $3 $4" \
+        --passL:"-target $3 $5" \
         --os:"$1" \
         --cpu:"$2" \
         --forceBuild:on \
@@ -88,12 +118,13 @@ zcomp() {
 }
 
 if [ "$1" = "native" ]; then
-    zcomp "macosx" "arm64" "aarch64-macos"
     zcomp "linux" "arm64" "aarch64-linux"
     zcomp "linux" "amd64" "x86_64-linux"
     zcomp "windows" "amd64" "x86_64-windows"
 elif [ "$1" = "wasi" ]; then
     compwasi
+elif [ "$1" = "macos" ]; then
+    compmacos
 else
     mkdir -p "out/"
 
