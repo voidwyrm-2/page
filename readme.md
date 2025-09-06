@@ -11,7 +11,7 @@ Prebuilt binaries can be downloaded from the [releases](https://github.com/voidw
 ### Compiling locally
 
 **Prerequisites** 
-- Unix system or similar (compiling on Windows is not currently supported)
+- A Unix system or similar (compiling on Windows is not currently supported)
 - Git, which should be on your system already
 - Nim, which can be downloaded from https://nim-lang.org/install.html
 - Nimble, which should have come bundled with Nim
@@ -21,9 +21,9 @@ git clone https://github.com/voidwyrm-2/npscript
 cd npscript
 nimble install noise
 chmod +x build.sh
-./build.sh
-./out/npscript -v
-./out/npscript --repl
+./build.sh host
+./out/host/npscript -v
+./out/host/npscript --repl
 ```
 
 Addtionally, if you want to cross-compile or build in release mode, you'll need

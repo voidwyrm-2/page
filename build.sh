@@ -118,22 +118,26 @@ zcomp() {
 }
 
 if [ "$1" = "native" ]; then
-    zcomp "linux" "i386" "x86-linux"
     zcomp "linux" "amd64" "x86_64-linux"
+    zcomp "linux" "i386" "x86-linux"
     zcomp "linux" "arm64" "aarch64-linux"
     zcomp "windows" "amd64" "x86_64-windows"
+    zcomp "windows" "i386" "x86-windows"
 elif [ "$1" = "wasi" ]; then
     compwasi
 elif [ "$1" = "macos" ]; then
     compmacos
-else
-    mkdir -p "out/"
-
+elif [ "$1" = "host" ]; then
+    nim c \
+    -d:release \
+    --forceBuild:on \
+    -o:out/host/npscript \
+    src/npscript.nim
+elif [ "$1" = "" ]; then
     nim c \
     -o:out/npscript \
     src/npscript.nim
+else
+    echo "unknown build target '$1'"
+    exit 1
 fi
-
-#-d:prompt_no_completion \
-#-d:prompt_no_word_editing \
-#-d:prompt_no_preload_buffer \
