@@ -8,6 +8,8 @@ A PostScript implementation with a focus on console applications.
 
 Prebuilt binaries can be downloaded from the [releases](https://github.com/voidwyrm-2/npscript/releases/latest).
 
+If you aren't sure which to pick, go with `windows-amd64`, `linux-amd64`, or `macosx-arm64`, depending on your system.
+
 ### Compiling locally
 
 **Prerequisites** 
