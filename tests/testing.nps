@@ -48,11 +48,13 @@ export begin
     exch
     /expec exch def
     exec
+    /actua exch def
 
+    actua
     expec
     eq
-    {(PASSED)}
-    {(FAILED)}
+    {actua (PASSED, got %d) sprintf}
+    {actua (FAILED, got %d instead) sprintf}
     ifelse
 
     count exch expec exch (CASE %f, expecting %d -- %f\n) printf

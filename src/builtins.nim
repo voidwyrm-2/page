@@ -2,7 +2,8 @@ import std/[
   tables,
   algorithm,
   strutils,
-  strformat
+  strformat,
+  random
 ]
 
 import
@@ -14,7 +15,7 @@ import
   ]
 
 
-const langVersion* = "0.9.0"
+const langVersion* = "0.10.4"
 
 let builtins* = newDict(0)
 
@@ -26,6 +27,15 @@ template addF(name: string, args: openArray[NpsType], s, r, body: untyped) =
 
 template addS(name: string, args: openArray[NpsType], body: string) =
   addS(builtins, "builtins.nps", name, args, body)
+
+
+template addMathOp(name: string, op: untyped) =
+  addF(name, @[tAny, tAny], s, _):
+    let
+      b = s.pop()
+      a = s.pop()
+    
+    s.push(op(a, b))
 
 
 func `$`[T: CatchableError](e: ref T): string =
@@ -74,11 +84,10 @@ addF("import", @[tString], s, _):
 
 # ->
 # Completely stops the program.
-addF("quit", @[], _, _):
-  raise NpsQuitError()
+addS("quit", @[], "0 quitn")
 
 # E ->
-# Completely stops the program with the exit code E.
+# Completely stops the program with an exit code E.
 addF("quitn", @[tNumber], s, _):
   let code = Number(s.pop()).whole("E")
 
@@ -97,19 +106,19 @@ addF("exec", @[tFunction], s, r):
 # Stack operators
 
 # A ->
-# Discards the value on the top of the stack.
+# Discards a value A.
 addF("pop", @[tAny], s, _):
   discard s.pop()
 
 # A -> A A
-# Duplicates the value on the top of the stack.
+# Duplicates a value A.
 addF("dup", @[tAny], s, _):
   let val = s.pop()
   s.push(val)
   s.push(val.copy())
 
 # A B -> B A
-# Exchanges the top and second-from-top values on the stack.
+# Exchanges the positions of values A and B.
 addF("exch", @[tAny, tAny], s, _):
   let
     b = s.pop()
@@ -119,7 +128,7 @@ addF("exch", @[tAny, tAny], s, _):
   s.push(a)
 
 # ... C R -> ...
-# Rotates the top C items on the stack up R times.
+# Rotates the top C items on the stack up by R times.
 addF("roll", @[tNumber, tNumber], s, _):
   let
     roll = Number(s.pop()).whole("R")
@@ -149,60 +158,65 @@ addF("roll", @[tNumber, tNumber], s, _):
 
 # A B -> A + B
 # Adds A and B together.
-addF("add", @[tAny, tAny], s, _):
-  let
-    b = s.pop()
-    a = s.pop()
-  
-  s.push(a + b)
+addMathOp("add", `+`)
 
 # A B -> A - B
 # Substracts A from B.
-addF("sub", @[tAny, tAny], s, _):
-  let
-    b = s.pop()
-    a = s.pop()
-  
-  s.push(a - b)
+addMathOp("sub", `-`)
 
 # A B -> A * B
 # Multiplies A with B.
-addF("mul", @[tAny, tAny], s, _):
-  let
-    b = s.pop()
-    a = s.pop()
-  
-  s.push(a * b)
+addMathOp("mul", `*`)
 
 # A B -> A / B
 # Divides A with B.
-addF("div", @[tAny, tAny], s, _):
-  let
-    b = s.pop()
-    a = s.pop()
-  
-  s.push(a / b)
+addMathOp("div", `/`)
+
+# A B -> A // B
+# Divides A with B and returns the integral.
+addMathOp("idiv", `//`)
+
+# A B -> A % B
+# Gets the modulo A and B.
+addMathOp("mod", `%`)
+
+# A B -> A % B
+# Computes A to the power of B.
+addMathOp("exp", `^`)
+
+addF("rand", @[], s, _):
+  var r = initRand()
+  s.push(newNpsNumber(r.rand(1.0)))
 
 
 # IO operators
 
 # A ->
-# Takes in a value and prints it in its formatted form.
+# Takes in a value A and prints it in its formatted form.
 # This function will print any value as a literal, e.g. '(hello)' becomes hello, '/dog' becomes dog,
 # and will not print lists in full.
 addF("=", @[tAny], s, _):
   echo s.pop()
 
 # A ->
-# Takes in a value and prints it in its debug form.
+# Takes in a value A and prints it in its debug form.
 # This function will print any value as it was in code form except functions,
 # and will print lists in full.
 addF("==", @[tAny], s, _):
   echo s.pop().debug()
 
-# S ->
-addF("printf", @[tString], s, _):
-  let fmt = String(s.pop()).value()
+# A ->
+# Takes in a value A and prints it in its formatted form without a newline.
+addF("print", @[tAny], s, _):
+  stdout.write $s.pop()
+  stdout.flushFile()
+
+# ... S ->
+# Formats a string S and an amount of values akin to C's sprintf.
+# The only format specifiers are '%f' and '%d',
+# which format a value in its formatted and debug forms, respectively.
+addF("sprintf", @[tString], s, _):
+  let fmt = String(s.pop()).value
 
   var
     parts: seq[tuple[s: string, f: bool]]
@@ -217,7 +231,7 @@ addF("printf", @[tString], s, _):
       of 'f', 'd':
         parts.add(($ch, true))
       else:
-        raise newNpsError(fmt"Invalid formatting specifier '{ch}'")
+        raise newNpsError(fmt"Invalid format specifier '{ch}'")
 
       formatters += 1
 
@@ -250,9 +264,10 @@ addF("printf", @[tString], s, _):
       i += 1
     else:
       formatted &= p.s
+  
+  s.push(newNpsString(formatted))
 
-  stdout.write formatted
-  stdout.flushFile()
+addS("printf", @[tString], "sprintf print")
 
 # ->
 # Prints the stack without effecting it.
@@ -267,7 +282,7 @@ addF("stack", @[], s, _):
 # ->
 # Prints the stack without effecting it.
 # The topmost item is the top of the stack.
-# This function uses the same semantics as '='.
+# This function uses the same semantics as '=='.
 addF("pstack", @[], s, _):
   let stack = s.stack()
 
@@ -486,6 +501,28 @@ addF("begin", @[tDict], s, _):
 # Closes the last opened dictionary.
 addF("end", @[], s, _):
   discard s.dend()
+
+# D S ->
+# Adds a symbol S from a dictionary D into the current dictionary.
+# If S already exists in it current dictionary, it will be overwritten.
+addF("from", @[tDict, tSymbol], s, _):
+  let
+    name = Symbol(s.pop()).value
+    d = Dictionary(s.pop()).value
+
+  if not d.hasKey(name):
+    raise newNpsError(fmt"Symbol '{name}' does not exist")
+
+  s.set(name, d[name])
+
+# D ->
+# Adds the symbols from a dictionary D into the current dictionary.
+# Already existing symbols will be overwritten.
+addF("allfrom", @[tDict], s, _):
+  let d = Dictionary(s.pop()).value
+  
+  for k, v in d.pairs:
+    s.set(k, v)
 
 # D F ->
 # Takes a dictionary D, opens D, executes F, then closes D.

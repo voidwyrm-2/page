@@ -5,5 +5,8 @@
 {10 2 sub} 8 expect
 {10 2 mul} 20 expect
 {10 2 div} 5 expect
+{10 3 idiv} 3 expect
+{21 7 mod} 0 expect
+{6 3 exp} 216 expect
 
 runall

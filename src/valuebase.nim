@@ -60,6 +60,15 @@ method `*`*(self: NpsValue, other: NpsValue): NpsValue {.base.} =
 method `/`*(self: NpsValue, other: NpsValue): NpsValue {.base.} =
   unsOp(self, "div", other)
 
+method `//`*(self: NpsValue, other: NpsValue): NpsValue {.base.} =
+  unsOp(self, "idiv", other)
+
+method `%`*(self: NpsValue, other: NpsValue): NpsValue {.base.} =
+  unsOp(self, "mod", other)
+
+method `^`*(self: NpsValue, other: NpsValue): NpsValue {.base.} =
+  unsOp(self, "exp", other)
+
 method `==`*(self: NpsValue, other: NpsValue): bool {.base.} =
   false
 

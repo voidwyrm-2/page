@@ -1,7 +1,8 @@
 import std/[
   sugar,
   strutils,
-  algorithm
+  algorithm,
+  math
 ]
 
 import
