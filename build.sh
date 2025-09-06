@@ -118,8 +118,9 @@ zcomp() {
 }
 
 if [ "$1" = "native" ]; then
-    zcomp "linux" "arm64" "aarch64-linux"
+    zcomp "linux" "i386" "x86-linux"
     zcomp "linux" "amd64" "x86_64-linux"
+    zcomp "linux" "arm64" "aarch64-linux"
     zcomp "windows" "amd64" "x86_64-windows"
 elif [ "$1" = "wasi" ]; then
     compwasi
