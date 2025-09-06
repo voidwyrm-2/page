@@ -1,7 +1,8 @@
 when not defined(wasm32):
   import std/[
     strformat,
-    os
+    os,
+    strutils
   ]
 
   import pkg/Noise
@@ -26,13 +27,27 @@ when defined(wasm32):
     q1 "The REPL is not supported in wasm32 targets"
 else:
   proc repl() =
+    if not npsReplHistory.fileExists():
+      npsReplHistory.writeFile("")
+
+    var hf: File = nil
+
+    if not open(hf, npsReplHistory, fmReadWriteExisting):
+      q1 "Cannot open ", npsReplHistory
+
+    defer:
+      hf.close()
+
     var noise = Noise.init()
+
+    for line in hf.readAll().split("\n"):
+      noise.historyAdd(line)
+
+    hf.setFilePos(hf.getFileSize(), fspSet)
     
     echo "NPScript ", langVersion, " REPL; type 'quit' to exit"
   
-    var
-      i = newInterpreter()
-      errored = false
+    let i = newInterpreter()
   
     noise.setPrompt("NPS > ")
   
@@ -52,7 +67,7 @@ else:
       let line = noise.getLine()
   
       try:
-        var
+        let
           l = newLexer("repl", line)
           p = newParser(l.lex())
         i.exec(p.parse())
@@ -60,11 +75,9 @@ else:
         quit e.code
       except NpsError as e:
         echo e
-        errored = true
   
+      hf.writeLine(line)
       noise.historyAdd(line)
-  
-      errored = false
 
 proc main(args: seq[string]) =
   let argp = newArgparser("npscript")
@@ -88,6 +101,8 @@ proc main(args: seq[string]) =
   if res.get("v").exists:
     echo "NPScript interpreter version ", langVersion
     return
+
+  verifyNps()
 
   if res.get("repl").exists:
     repl()

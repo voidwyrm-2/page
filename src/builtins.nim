@@ -14,7 +14,7 @@ import
   ]
 
 
-const langVersion* = "0.8.4"
+const langVersion* = "0.9.0"
 
 let builtins* = newDict(0)
 
