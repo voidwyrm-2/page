@@ -15,7 +15,7 @@ import
   ]
 
 
-const langVersion* = "0.11.0"
+const langVersion* = "0.11.1"
 
 let builtins* = newDict(0)
 
@@ -392,7 +392,7 @@ addF("and", @[tBool, tBool], s, _):
 
 # A B -> A or B
 # Returns true if bools A or B are true, otherwise false.
-addF("and", @[tBool, tBool], s, _):
+addF("or", @[tBool, tBool], s, _):
   let
     b = Bool(s.pop()).value
     a = Bool(s.pop()).value
