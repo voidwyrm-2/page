@@ -15,7 +15,7 @@ import
   ]
 
 
-const langVersion* = "0.10.4"
+const langVersion* = "0.11.0"
 
 let builtins* = newDict(0)
 
@@ -380,6 +380,24 @@ addF("if", @[tBool, tFunction], s, r):
 
   if cond:
     f.run(s, r)
+
+# A B -> A and B
+# Returns true if bools A and B are true, otherwise false.
+addF("and", @[tBool, tBool], s, _):
+  let
+    b = Bool(s.pop()).value
+    a = Bool(s.pop()).value
+
+  s.push(newNpsBool(a and b))
+
+# A B -> A or B
+# Returns true if bools A or B are true, otherwise false.
+addF("and", @[tBool, tBool], s, _):
+  let
+    b = Bool(s.pop()).value
+    a = Bool(s.pop()).value
+
+  s.push(newNpsBool(a or b))
 
 # B fA fB ->
 # Executes fA if B is true, otherwise executes fB.
