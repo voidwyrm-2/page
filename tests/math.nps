@@ -1,4 +1,4 @@
-(testing.nps) import begin
+(testing) import begin
 (math) settitle
 
 {10 2 add} 12 expect
