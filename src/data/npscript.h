@@ -3,11 +3,11 @@
 typedef uint8_t Bool;
 
 typedef struct {
-  char *txt;
-  uint32_t len;
+  char *ptr;
+  uint64_t len;
 } String;
 
-typedef enum {
+typedef enum : uint8_t {
   NPS_T_ANY,
   NPS_T_BOOL,
   NPS_T_SYMBOL,
@@ -21,8 +21,8 @@ typedef enum {
 typedef struct _NpsValue NpsValue;
 
 typedef struct {
-  NpsValue *arr;
-  int len;
+  NpsValue *ptr;
+  uint64_t len;
 } NpsList;
 
 #define fptr(name_, ret_, ...) ret_ (*name_)(__VA_ARGS__)
@@ -30,12 +30,13 @@ typedef struct {
 typedef struct {
   fptr(set, void, String name, NpsValue value);
   fptr(get, NpsValue *, String name);
+  fptr(len, uint64_t, void);
 } NpsDict;
 
 typedef struct _NpsValue {
   fptr(type, NpsType, void);
   fptr(getAny, void *, void);
-  fptr(getBool, int32_t, void);
+  fptr(getBool, Bool, void);
   fptr(getNum, float, void);
   fptr(getLit, String, void);
   fptr(getList, NpsList, void);
