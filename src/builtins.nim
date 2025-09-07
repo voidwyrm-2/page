@@ -3,10 +3,15 @@ import std/[
   algorithm,
   strutils,
   strformat,
-  random
+  random,
+  os,
+  sequtils
 ]
 
+from system/nimscript import nil
+
 import
+  npsenv,
   state,
   values,
   libraries/[
@@ -14,8 +19,22 @@ import
     libstrings
   ]
 
+const langVersion* = staticRead("../npscript.nimble")
+  .split("\n")
+  .filterIt(it.startsWith("version"))[0]
+  .split("=")[^1]
+  .strip()[1..^2]
 
-const langVersion* = "0.11.1"
+when defined(release):
+  const buildMode = "release"
+elif defined(danger):
+  const buildMode = "danger"
+else:
+  const buildMode = "debug"
+
+static:
+  echo "Compiling NPScript ", langVersion, " on ", nimscript.buildOS, "/", nimscript.buildCPU, " for ", hostOS, "/", hostCPU, " in ", buildMode, " mode"
+
 
 let builtins* = newDict(0)
 
@@ -65,15 +84,25 @@ addF("type", @[tAny], s, _):
 
 # P -> D
 # Evaluates a path P as a NPScript file and returns the value D of the 'export' symbol inside of it.
+# If P doesn't have the .nps extension, P will be redirected to be ~/.npscript/std/[P].nps (or %USERPROFILE%\.npscript\std\[P].nps on Windows).
+# Back-slashes aren't allowed in P, but on DOS-like systems (e.g. Windows), forward-slashes will be replaced with back-slashes.
 addF("import", @[tString], s, _):
-  let path = String(s.pop()).value
+  var path = String(s.pop()).value
+
+  if path.find('\\') != -1:
+    raise newNpsError("Invalid import path, import paths cannot contain back-slashes")
+
+  path = path.replace('/', DirSep)
+
+  if not path.endsWith(".nps"):
+    path = joinPath(npsStd, path) & ".nps"
 
   var content: string
 
   try:
     content = readFile path
   except IOError as e:
-    raise newNpsError(fmt"Could not read from '{path}':" & "\n" & $e)
+    raise newNpsError(fmt"Could not read from '{path}':" & "\n  " & e.msg)
 
   let substate = s.codeEval(path, content)
 

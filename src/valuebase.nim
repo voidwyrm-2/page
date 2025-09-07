@@ -18,6 +18,7 @@ type
   NpsValue* = ref object of RootObj
     kind*: NpsType = tBase
 
+
 func `$`*(self: NpsType): string =
   case self
   of tBase:

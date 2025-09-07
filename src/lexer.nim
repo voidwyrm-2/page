@@ -41,12 +41,14 @@ type
     ch: char
     eof: bool
 
+
 let charToTokenType = newTable([
   ('[', TokenType.ttBracketOpen),
   (']', TokenType.ttBracketClose),
   ('{', TokenType.ttBraceOpen),
   ('}', TokenType.ttBraceClose),
 ])
+
 
 func initToken*(kind: TokenType, file, lit: string, col, ln: int): Token =
   Token(ty: kind, file: file, lit: lit, col: col, ln: ln)

@@ -21,6 +21,7 @@ type
   Interpreter* = ref object
     state: State
 
+
 proc codeEvaler(file, text: string): State;
 
 proc newInterpreter*(): Interpreter =

@@ -27,6 +27,7 @@ type
     flags: seq[Flag]
     flagMap: OrderedTable[string, Flag]
 
+
 func get*(self: ParseResult, name: string): FlagResult =
   if not self.inner.hasKey(name):
     raise newException(ArgparseError, fmt"Flag '{name}' does not exist")

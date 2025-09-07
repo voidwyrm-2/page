@@ -21,6 +21,7 @@ type
     isLoop*: bool
     codeEval*: proc(file, text: string): State
 
+
 func newDict*(size: int): Dict =
   newTable[string, NpsValue](size)
 
