@@ -54,9 +54,11 @@ compmacos() {
     nim c \
         -d:release \
         --cc:clang \
-        --clang.exe:"zigcc" \
-        --clang.linkerexe:"zigcc" \
+        --clang.exe:"clang" \
+        --clang.linkerexe:"clang" \
         --forceBuild:on \
+        --os:"macosx" \
+        --cpu:"arm64" \
         -o:"$result" \
         src/npscript.nim
     tryq
@@ -84,8 +86,9 @@ zcomp() {
         ext=".exe"
     fi
 
-    targetpair="$1-$2"
-    outpath="out/$targetpair"
+    llvmTriple="$3"
+
+    outpath="out/$llvmTriple"
     result="$outpath/npscript$ext"
     
     nim c \
@@ -93,8 +96,8 @@ zcomp() {
         --cc:clang \
         --clang.exe:"zigcc" \
         --clang.linkerexe:"zigcc" \
-        --passC:"-target $3 $4" \
-        --passL:"-target $3 $5" \
+        --passC:"-target $llvmTriple $4" \
+        --passL:"-target $llvmTriple $5" \
         --os:"$1" \
         --cpu:"$2" \
         --forceBuild:on \
@@ -105,22 +108,27 @@ zcomp() {
     cp -R "$outpath" .
     tryq
     
-    zip -r "$targetpair" "$targetpair"
+    zip -r "$llvmTriple" "$llvmTriple"
     tryq
 
-    mv "$targetpair.zip" out/
+    mv "$llvmTriple.zip" out/
     tryq
 
-    rm -rf "$targetpair"
+    rm -rf "$llvmTriple"
     tryq
 
-    echo "built '$targetpair' with LLVM triple '$3'"
+    echo "built '$1/$2' with LLVM triple '$llvmTriple'"
 }
 
 if [ "$1" = "native" ]; then
-    zcomp "linux" "amd64" "x86_64-linux"
-    zcomp "linux" "i386" "x86-linux"
-    zcomp "linux" "arm64" "aarch64-linux"
+    zcomp "linux" "amd64" "x86_64-linux-gnu"
+    zcomp "linux" "i386" "x86-linux-gnu"
+    zcomp "linux" "arm64" "aarch64-linux-gnu"
+
+    zcomp "linux" "amd64" "x86_64-linux-musl"
+    zcomp "linux" "i386" "x86-linux-musl"
+    zcomp "linux" "arm64" "aarch64-linux-musl"
+
     zcomp "windows" "amd64" "x86_64-windows"
     zcomp "windows" "i386" "x86-windows"
 elif [ "$1" = "wasi" ]; then

@@ -41,13 +41,11 @@ chmod +x build.sh
 
 For building for Mac, you'll need
 - A MacOS system, because of library issues
-- Zig, which can be downloaded from https://ziglang.org/download
 
 ```sh
 git clone https://github.com/voidwyrm-2/npscript
 cd npscript
 xcode-select --install
-nimble install zigcc
 chmod +x build.sh
 ./build.sh macos
 ```
