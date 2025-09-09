@@ -3,8 +3,7 @@ import
   ../state
 
 template addV*(dict: Dict, name: string, item: NpsValue) =
-  static:
-    dict[name] = item
+  dict[name] = item
 
 template addF*(dict: Dict, name: string, args: openArray[NpsType], s, r, body: untyped) =
   addV(dict, name):

@@ -35,7 +35,7 @@ else:
 static:
   echo "Compiling NPScript ", langVersion, " on ", nimscript.buildOS, "/", nimscript.buildCPU, " for ", hostOS, "/", hostCPU, " in ", buildMode, " mode"
 
-let builtins* {.compileTime.} = newDict(0)
+let builtins* = newDict(0)
 
 template addV(name: string, item: NpsValue) =
   addV(builtins, name, item)

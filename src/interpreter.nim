@@ -26,7 +26,7 @@ proc codeEvaler(file, text: string): State;
 
 proc newInterpreter*(): Interpreter =
   new result
-  result.state = newState(1, builtins.builtins)
+  result.state = newState(1, builtins.builtins.copy())
   result.state.codeEval = codeEvaler
 
 proc newInterpreter*(state: State): Interpreter =
