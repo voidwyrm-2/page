@@ -7,7 +7,7 @@ import
   ../state,
   common
 
-let lib* {.compileTime.} = newDict(0)
+let lib* = newDict(0)
 
 template addV(name: string, item: NpsValue) =
   addV(lib, name, item)

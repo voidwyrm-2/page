@@ -25,6 +25,13 @@ type
 func newDict*(size: int): Dict =
   newTable[string, NpsValue](size)
 
+func copy*(dict: Dict): Dict =
+  ## Shallowly copies a Dict
+  result = newDict(dict.len())
+
+  for (k, v) in dict.pairs:
+    result[k] = v
+
 func newState*(dictMin: int, dicts: varargs[Dict]): State =
   new result
   result.dictMin = dictMin

@@ -202,8 +202,16 @@ func collectWord(self: Lexer, kind: TokenType = ttWord, skip: bool = false): Tok
   if kind == ttWord:
     try:
       discard parseFloat(lit)
-      if lit != "nan" and lit != "inf" and lit != "-inf":
-        raise newException(ValueError, "Value '{lit}' is an invalid number")
+
+      case lit.toLower()
+      of "nan", "inf", "-inf":
+        if lit.toLower() != lit:
+          raise newException(ValueError, fmt"Value '{lit}' is an invalid number")
+      of ".":
+        raise newException(ValueError, fmt"Value '{lit}' is an invalid number")
+      else:
+        discard
+
       k = ttNumber
     except ValueError:
       discard
