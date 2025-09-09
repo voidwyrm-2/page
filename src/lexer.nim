@@ -1,5 +1,4 @@
 import std/[
-  tables,
   strformat,
   strutils
 ]
@@ -42,13 +41,20 @@ type
     eof: bool
 
 
-let charToTokenType = newTable([
-  ('[', TokenType.ttBracketOpen),
-  (']', TokenType.ttBracketClose),
-  ('{', TokenType.ttBraceOpen),
-  ('}', TokenType.ttBraceClose),
-])
+func charToTokenType(ch: char, tt: var TokenType): bool =
+  case ch
+  of '[':
+    tt = ttBracketOpen
+  of ']':
+    tt = ttBracketClose
+  of '{':
+    tt = ttBraceOpen
+  of '}':
+    tt = ttBraceClose
+  else:
+    return false
 
+  true
 
 func initToken*(kind: TokenType, file, lit: string, col, ln: int): Token =
   Token(ty: kind, file: file, lit: lit, col: col, ln: ln)
@@ -196,9 +202,9 @@ func collectWord(self: Lexer, kind: TokenType = ttWord, skip: bool = false): Tok
   if kind == ttWord:
     try:
       discard parseFloat(lit)
-      let lowLit = lit.toLower()
-      if lowLit != "nan" and lowLit != "inf" and lowLit != "-inf":
-        k = ttNumber
+      if lit != "nan" and lit != "inf" and lit != "-inf":
+        raise newException(ValueError, "Value '{lit}' is an invalid number")
+      k = ttNumber
     except ValueError:
       discard
 
@@ -208,6 +214,8 @@ proc lex*(self: Lexer): seq[Token] =
   while not self.eof:
     let ch = self.ch
 
+    var tt = ttNone
+
     if not self.eof and ch.isSpaceAscii():
       while self.ch.isSpaceAscii():
         self.next()
@@ -216,8 +224,8 @@ proc lex*(self: Lexer): seq[Token] =
         self.next()
     elif ch == '(':
       result.add(self.collectString())
-    elif charToTokenType.hasKey(ch):
-      result.add(initToken(charToTokenType[ch], self.file, $ch, self.col, self.ln))
+    elif charToTokenType(ch, tt):
+      result.add(initToken(tt, self.file, $ch, self.col, self.ln))
       self.next()
     elif ch == '/':
       result.add(self.collectWord(TokenType.ttSymbol, true))

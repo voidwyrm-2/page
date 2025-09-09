@@ -3,7 +3,8 @@ import
   ../state
 
 template addV*(dict: Dict, name: string, item: NpsValue) =
-  dict[name] = item
+  static:
+    dict[name] = item
 
 template addF*(dict: Dict, name: string, args: openArray[NpsType], s, r, body: untyped) =
   addV(dict, name):
@@ -13,8 +14,7 @@ template addF*(dict: Dict, name: string, args: openArray[NpsType], s, r, body: u
     )
 
 template addS*(dict: Dict, file, name: string, args: openArray[NpsType], body: string) =
-  addV(dict, name):
-    newNpsFunction(args, file, body)
+  dict[name] = newNpsFunction(args, file, body)
 
 func whole*(n: Number, name: static string): int =
   result = int(n.value())

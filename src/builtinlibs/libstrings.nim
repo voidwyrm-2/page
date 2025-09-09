@@ -7,7 +7,7 @@ import
   ../state,
   common
 
-let lib* = newDict(0)
+let lib* {.compileTime.} = newDict(0)
 
 template addV(name: string, item: NpsValue) =
   addV(lib, name, item)
@@ -32,7 +32,7 @@ addF("chars", @[tString], s, _):
   s.push(newNpsList(chars))
 
 # S D -> L
-# Separates a string S by a delimiter D.
+# Separates a string S into a list L of parts by a delimiter D.
 addF("split", @[tString, tString], s, _):
   let
     delim = String(s.pop()).value()
