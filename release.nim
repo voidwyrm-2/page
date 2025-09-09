@@ -56,7 +56,7 @@ let
     .split("\n")
 
   latestRelease = runCmd("gh release list --json name -L 1")
-    .parseJson()
+    .parseJson()[0]
     .getFields()["name"]
     .getStr()[9..^1]
     .parseVersion()
