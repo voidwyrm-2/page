@@ -48,6 +48,9 @@ func `>`(a, b: tuple[major, minor, patch: uint]): bool =
   else:
     a.major > b.major
 
+func `$`(t: tuple[major, minor, patch: uint]): string =
+  fmt"{t.major}.{t.minor}.{t.patch}"
+
 let
   changelogFinder = re"NPScript [0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}"
   
@@ -60,6 +63,9 @@ let
     .getFields()["name"]
     .getStr()[9..^1]
     .parseVersion()
+
+echo "Generating release for version ", version
+echo "The latest release is: ", latestRelease
 
 var changelogs: seq[string]
 
@@ -81,7 +87,7 @@ for commit in commits:
 
   let ver = c[0..n - 1].parseVersion()
 
-  if ver > latestRelease or ver == latestRelease:
+  if ver > latestRelease:
     changelogs.add("https://github.com/voidwyrm-2/npscript/commit/" & hash)
   else:
     break
@@ -90,6 +96,6 @@ try:
   releaseFile.writeFile("Changelog" & (if changelogs.len() == 1: "s" else: "") & ":\n" & changelogs.join("\n"))
 
   let relCmd = fmt"gh release create -t 'NPScript {version}' -F {releaseFile} {version} out/*.zip"
-  echo relCmd
+  echo runCmd(relCmd)
 finally:
   discard releaseFile.tryRemoveFile()
