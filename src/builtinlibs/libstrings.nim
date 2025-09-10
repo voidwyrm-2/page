@@ -12,8 +12,8 @@ let lib* = newDict(0)
 template addV(name: string, item: NpsValue) =
   addV(lib, name, item)
 
-template addF(name: string, args: openArray[NpsType], s, r, body: untyped) =
-  addF(lib, name, args, s, r, body)
+template addF(name: string, args: openArray[NpsType], body: untyped) =
+  addF(lib, name, args, body)
 
 template addS(name: string, args: openArray[NpsType], body: string) =
   addS(lib, "strings.nps", name, args, body)
@@ -21,7 +21,7 @@ template addS(name: string, args: openArray[NpsType], body: string) =
 
 # S -> L
 # Separates a string S into a list L of character strings.
-addF("chars", @[tString], s, _):
+addF("chars", @[tString]):
   let str = String(s.pop()).value()
 
   var chars: seq[NpsValue]
@@ -33,7 +33,7 @@ addF("chars", @[tString], s, _):
 
 # S D -> L
 # Separates a string S into a list L of parts by a delimiter D.
-addF("split", @[tString, tString], s, _):
+addF("split", @[tString, tString]):
   let
     delim = String(s.pop()).value()
     str = String(s.pop()).value()
@@ -47,7 +47,7 @@ addF("split", @[tString, tString], s, _):
 
 # L D -> S
 # Combines a list of strings L into a single string S, separated by delimiter D.
-addF("joins", @[tList, tString], s, _):
+addF("joins", @[tList, tString]):
   let
     delim = String(s.pop()).value()
     l = List(s.pop()).value()

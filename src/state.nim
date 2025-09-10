@@ -25,6 +25,9 @@ type
 func newDict*(size: int): Dict =
   newTable[string, NpsValue](size)
 
+func newDict*(pairs: openArray[(string, NpsValue)]): Dict =
+  newTable(pairs)
+
 func copy*(dict: Dict): Dict =
   ## Shallowly copies a Dict
   result = newDict(dict.len())

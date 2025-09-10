@@ -14,6 +14,7 @@ import
   npsenv,
   state,
   values,
+  lexer,
   builtinlibs/[
     common,
     libstrings
@@ -40,15 +41,15 @@ let builtins* = newDict(0)
 template addV(name: string, item: NpsValue) =
   addV(builtins, name, item)
 
-template addF(name: string, args: openArray[NpsType], s, r, body: untyped) =
-  addF(builtins, name, args, s, r, body)
+template addF(name: string, args: openArray[NpsType], body: untyped) =
+  addF(builtins, name, args, body)
 
 template addS(name: string, args: openArray[NpsType], body: string) =
   addS(builtins, "builtins.nps", name, args, body)
 
 
 template addMathOp(name: string, op: untyped) =
-  addF(name, @[tAny, tAny], s, _):
+  addF(name, @[tAny, tAny]):
     let
       b = s.pop()
       a = s.pop()
@@ -60,11 +61,58 @@ func `$`[T: CatchableError](e: ref T): string =
   e.msg
 
 
-# Libraries
+let defaultSearchPaths = [
+  npsStd,
+  npsPkg
+]
 
-# Functions related to string handling and processing.
-addV("~strings"):
-  newNpsDictionary(libstrings.lib)
+
+let internalPackageRegistry = newTable[string, Dict]([
+  # Functions related to string handling and processing.
+  ("strings", libstrings.lib)
+])
+
+
+proc importFile*(s: State, path: string): NpsValue =
+  var p = path
+
+  if p.find('\\') != -1:
+    raise newNpsError("Invalid import path, import paths cannot contain back-slashes")
+
+  p = p.replace('/', DirSep)
+
+  if not p.endsWith(".nps"):
+    if internalPackageRegistry.hasKey(p):
+      return newNpsDictionary(internalPackageRegistry[p])
+
+    let packageSearchPaths = defaultSearchPaths.toSeq()
+
+    var found = false
+
+    for srpath in packageSearchPaths:
+      let testPath = joinPath(srpath, p) & ".nps"
+
+      if testPath.fileExists():
+        p = testPath
+        found = true
+        break
+
+    if not found:
+      raise newNpsError(fmt"'{p}' could not be found in any search path:" & "\n Internal package registry\n " & packageSearchPaths.join("\n "))
+
+  var content: string
+
+  try:
+    content = readFile p
+  except IOError as e:
+    raise newNpsError(fmt"Could not read from '{p}':" & "\n  " & e.msg)
+
+  let substate = s.codeEval(p, content)
+
+  if not substate.has("export"):
+    raise newNpsError("Symbol 'export' must be defined in imported modules")
+
+  return substate.get("export")
 
 
 # Meta operators
@@ -76,39 +124,40 @@ addV("langver"):
 
 # A -> typeof A
 # Returns a string that describes the type of A.
-addF("type", @[tAny], s, _):
+addF("type", @[tAny]):
   let tstr = $s.pop().kind
 
   s.push(newNpsString(tstr))
 
 # P -> D
 # Evaluates a path P as a NPScript file and returns the value D of the 'export' symbol inside of it.
-# If P doesn't have the .nps extension, P will be redirected to be ~/.npscript/std/[P].nps (or %USERPROFILE%\.npscript\std\[P].nps on Windows).
+#
+# If P ends with the .nps extension, P will be searched for in the current working directory,
+# and an error will be thrown if it doesn't exist.
+#
+# If P doesn't end with the .nps extension, P will be searched for in these directories in descending order.
+# - The internal package registry, which is what holds libraries like 'strings'
+# - ~/.npscript/std/ (or %USERPROFILE%\.npscript\std\ on Windows)
+# - ~/.npscript/pkg/ (or %USERPROFILE%\.npscript\pkg\ on Windows)
+#
+# If P can't be found in any of those paths, an error will be thrown.
+#
 # Back-slashes aren't allowed in P, but on DOS-like systems (e.g. Windows), forward-slashes will be replaced with back-slashes.
-addF("import", @[tString], s, _):
-  var path = String(s.pop()).value
+addF("import", @[tString]):
+  let
+    path = String(s.pop()).value
+    val = importFile(s, path)
 
-  if path.find('\\') != -1:
-    raise newNpsError("Invalid import path, import paths cannot contain back-slashes")
+  s.push(val)
 
-  path = path.replace('/', DirSep)
+# P -> D
+# Like 'import', but it automatically creates a symbol in the current dictionary with the name '~' + the base path of P with the extension removed.
+addF("importdef", @[tString]):
+  let
+    path = String(s.pop()).value
+    val = importFile(s, path)
 
-  if not path.endsWith(".nps"):
-    path = joinPath(npsStd, path) & ".nps"
-
-  var content: string
-
-  try:
-    content = readFile path
-  except IOError as e:
-    raise newNpsError(fmt"Could not read from '{path}':" & "\n  " & e.msg)
-
-  let substate = s.codeEval(path, content)
-
-  if not substate.has("export"):
-    raise newNpsError("Symbol 'export' must be defined in imported modules")
-
-  s.push(substate.get("export"))
+  s.set("~" & path.lastPathPart().changeFileExt(""), val)
 
 # ->
 # Completely stops the program.
@@ -116,38 +165,39 @@ addS("quit", @[], "0 quitn")
 
 # E ->
 # Completely stops the program with an exit code E.
-addF("quitn", @[tNumber], s, _):
+addF("quitn", @[tNumber]):
   let code = Number(s.pop()).whole("E")
 
   raise NpsQuitError(code: code)
 
 # ->
 # Exits out of the loop it's called inside of.
-addF("exit", @[], _, _):
+addF("exit", @[]):
   raise NpsExitError()
 
 # F ->
 # Takes a function F and executes it.
-addF("exec", @[tFunction], s, r):
+addF("exec", @[tFunction]):
   Function(s.pop()).run(s, r)
 
 # Stack operators
 
 # A ->
 # Discards a value A.
-addF("pop", @[tAny], s, _):
+addF("pop", @[tAny]):
   discard s.pop()
 
-# A -> A A
+# A -> A A'
 # Duplicates a value A.
-addF("dup", @[tAny], s, _):
+# This is not a deep copy.
+addF("dup", @[tAny]):
   let val = s.pop()
   s.push(val)
   s.push(val.copy())
 
 # A B -> B A
 # Exchanges the positions of values A and B.
-addF("exch", @[tAny, tAny], s, _):
+addF("exch", @[tAny, tAny]):
   let
     b = s.pop()
     a = s.pop()
@@ -157,7 +207,7 @@ addF("exch", @[tAny, tAny], s, _):
 
 # ... C R -> ...
 # Rotates the top C items on the stack up by R times.
-addF("roll", @[tNumber, tNumber], s, _):
+addF("roll", @[tNumber, tNumber]):
   let
     roll = Number(s.pop()).whole("R")
     count = Number(s.pop()).whole("C")
@@ -212,7 +262,7 @@ addMathOp("mod", `%`)
 # Computes A to the power of B.
 addMathOp("exp", `^`)
 
-addF("rand", @[], s, _):
+addF("rand", @[]):
   var r = initRand()
   s.push(newNpsNumber(r.rand(1.0)))
 
@@ -223,19 +273,19 @@ addF("rand", @[], s, _):
 # Takes in a value A and prints it in its formatted form.
 # This function will print any value as a literal, e.g. '(hello)' becomes hello, '/dog' becomes dog,
 # and will not print lists in full.
-addF("=", @[tAny], s, _):
+addF("=", @[tAny]):
   echo s.pop()
 
 # A ->
 # Takes in a value A and prints it in its debug form.
 # This function will print any value as it was in code form except functions,
 # and will print lists in full.
-addF("==", @[tAny], s, _):
+addF("==", @[tAny]):
   echo s.pop().debug()
 
 # A ->
 # Takes in a value A and prints it in its formatted form without a newline.
-addF("print", @[tAny], s, _):
+addF("print", @[tAny]):
   stdout.write $s.pop()
   stdout.flushFile()
 
@@ -243,7 +293,7 @@ addF("print", @[tAny], s, _):
 # Formats a string S and an amount of values akin to C's sprintf.
 # The only format specifiers are '%f' and '%d',
 # which format a value in its formatted and debug forms, respectively.
-addF("sprintf", @[tString], s, _):
+addF("sprintf", @[tString]):
   let fmt = String(s.pop()).value
 
   var
@@ -272,7 +322,7 @@ addF("sprintf", @[tString], s, _):
   var
     values = newSeqOfCap[NpsValue](formatters)
     i = 0
-    formatted = ""
+    formatted = newStringOfCap(fmt.len() + formatters * 3)
 
   for _ in 0..<formatters:
     values.add(s.pop())
@@ -301,7 +351,7 @@ addS("printf", @[tString], "sprintf print")
 # Prints the stack without effecting it.
 # The topmost item is the top of the stack.
 # This function uses the same semantics as '='.
-addF("stack", @[], s, _):
+addF("stack", @[]):
   let stack = s.stack()
 
   for i in countdown(stack.len() - 1, 0):
@@ -311,15 +361,15 @@ addF("stack", @[], s, _):
 # Prints the stack without effecting it.
 # The topmost item is the top of the stack.
 # This function uses the same semantics as '=='.
-addF("pstack", @[], s, _):
+addF("pstack", @[]):
   let stack = s.stack()
 
   for i in countdown(stack.len() - 1, 0):
     echo stack[i].debug()
 
 # P -> S
-# Reads a path P and returns the result S.
-addF("readf", @[tString], s, _):
+# Reads a path P and returns the resulting string S.
+addF("readf", @[tString]):
   let path = String(s.pop()).value
   
   var content: string
@@ -333,7 +383,7 @@ addF("readf", @[tString], s, _):
 
 # S P ->
 # Writes a string S to a path P.
-addF("writef", @[tString, tString], s, _):
+addF("writef", @[tString, tString]):
   let
     path = String(s.pop()).value
     content = String(s.pop()).value
@@ -347,7 +397,7 @@ addF("writef", @[tString, tString], s, _):
 
 # A B -> A == B
 # Tests the equality of A and B.
-addF("eq", @[tAny, tAny], s, _):
+addF("eq", @[tAny, tAny]):
   let
     b = s.pop()
     a = s.pop()
@@ -356,7 +406,7 @@ addF("eq", @[tAny, tAny], s, _):
 
 # A B -> A != B
 # Tests the inequality of A and B.
-addF("ne", @[tAny, tAny], s, _):
+addF("ne", @[tAny, tAny]):
   let
     b = s.pop()
     a = s.pop()
@@ -365,7 +415,7 @@ addF("ne", @[tAny, tAny], s, _):
 
 # A B -> A > B
 # Compares A and B.
-addF("gt", @[tAny, tAny], s, _):
+addF("gt", @[tAny, tAny]):
   let
     b = s.pop()
     a = s.pop()
@@ -374,7 +424,7 @@ addF("gt", @[tAny, tAny], s, _):
 
 # A B -> A > B
 # Compares A and B.
-addF("ge", @[tAny, tAny], s, _):
+addF("ge", @[tAny, tAny]):
   let
     b = s.pop()
     a = s.pop()
@@ -383,7 +433,7 @@ addF("ge", @[tAny, tAny], s, _):
 
 # A B -> A > B
 # Compares A and B.
-addF("lt", @[tAny, tAny], s, _):
+addF("lt", @[tAny, tAny]):
   let
     b = s.pop()
     a = s.pop()
@@ -392,26 +442,16 @@ addF("lt", @[tAny, tAny], s, _):
 
 # A B -> A > B
 # Compares A and B.
-addF("le", @[tAny, tAny], s, _):
+addF("le", @[tAny, tAny]):
   let
     b = s.pop()
     a = s.pop()
   
   s.push(newNpsBool(a <= b))
 
-# B F ->
-# Executes F if B is true.
-addF("if", @[tBool, tFunction], s, r):
-  let
-    f = Function(s.pop())
-    cond = Bool(s.pop()).value
-
-  if cond:
-    f.run(s, r)
-
 # A B -> A and B
 # Returns true if bools A and B are true, otherwise false.
-addF("and", @[tBool, tBool], s, _):
+addF("and", @[tBool, tBool]):
   let
     b = Bool(s.pop()).value
     a = Bool(s.pop()).value
@@ -420,16 +460,26 @@ addF("and", @[tBool, tBool], s, _):
 
 # A B -> A or B
 # Returns true if bools A or B are true, otherwise false.
-addF("or", @[tBool, tBool], s, _):
+addF("or", @[tBool, tBool]):
   let
     b = Bool(s.pop()).value
     a = Bool(s.pop()).value
 
   s.push(newNpsBool(a or b))
 
-# B fA fB ->
-# Executes fA if B is true, otherwise executes fB.
-addF("ifelse", @[tBool, tFunction, tFunction], s, r):
+# B F ->
+# Executes F if B is true.
+addF("if", @[tBool, tFunction]):
+  let
+    f = Function(s.pop())
+    cond = Bool(s.pop()).value
+
+  if cond:
+    f.run(s, r)
+
+# B F F' ->
+# Executes F if a boolean B is true, otherwise executes F'.
+addF("ifelse", @[tBool, tFunction, tFunction]):
   let
     fFalse = Function(s.pop())
     fTrue = Function(s.pop())
@@ -444,7 +494,7 @@ addF("ifelse", @[tBool, tFunction, tFunction], s, r):
 
 # F ->
 # Executes F until 'exit' or 'quit' is called.
-addF("loop", @[tFunction], s, r):
+addF("loop", @[tFunction]):
   let
     f = Function(s.pop())
     prevLoopState = s.isLoop
@@ -462,7 +512,7 @@ addF("loop", @[tFunction], s, r):
 
 # S I E F ->
 # Steps from S to E while executing F, incrementing by I each iteration.
-addF("for", @[tNumber, tNumber, tNumber, tFunction], s, r):
+addF("for", @[tNumber, tNumber, tNumber, tFunction]):
   let
     f = Function(s.pop())
     lend = Number(s.pop()).whole("E")
@@ -489,7 +539,7 @@ addF("for", @[tNumber, tNumber, tNumber, tFunction], s, r):
 
 # L F ->
 # Iterates over L, putting each item on the stack then executing F.
-addF("forall", @[tList, tFunction], s, r):
+addF("forall", @[tList, tFunction]):
   let
     f = Function(s.pop())
     l = List(s.pop())
@@ -513,7 +563,7 @@ addF("forall", @[tList, tFunction], s, r):
 
 # S A ->
 # Binds A to the symbol S.
-addF("def", @[tSymbol, tAny], s, _):
+addF("def", @[tSymbol, tAny]):
   let
     val = s.pop()
     sym = Symbol(s.pop()).value
@@ -522,14 +572,14 @@ addF("def", @[tSymbol, tAny], s, _):
 
 # S -> A
 # Pushes the value bound to the symbol S onto the stack.
-addF("load", @[tSymbol], s, _):
+addF("load", @[tSymbol]):
   let sym = Symbol(s.pop()).value
 
   s.push(s.get(sym))
 
 # S -> D
 # Creates a dictionary D with the specified size S.
-addF("dict", @[tNumber], s, _):
+addF("dict", @[tNumber]):
   let
     size = Number(s.pop()).whole("S")
     d = newNpsDictionary(newDict(int(size)))
@@ -538,20 +588,20 @@ addF("dict", @[tNumber], s, _):
 
 # D ->
 # Opens a dictionary D for usage.
-addF("begin", @[tDict], s, _):
+addF("begin", @[tDict]):
   let d = Dictionary(s.pop())
 
   s.dbegin(d.value)
 
 # ->
 # Closes the last opened dictionary.
-addF("end", @[], s, _):
+addF("end", @[]):
   discard s.dend()
 
 # D S ->
 # Adds a symbol S from a dictionary D into the current dictionary.
 # If S already exists in it current dictionary, it will be overwritten.
-addF("from", @[tDict, tSymbol], s, _):
+addF("from", @[tDict, tSymbol]):
   let
     name = Symbol(s.pop()).value
     d = Dictionary(s.pop()).value
@@ -564,7 +614,7 @@ addF("from", @[tDict, tSymbol], s, _):
 # D ->
 # Adds the symbols from a dictionary D into the current dictionary.
 # Already existing symbols will be overwritten.
-addF("allfrom", @[tDict], s, _):
+addF("allfrom", @[tDict]):
   let d = Dictionary(s.pop()).value
   
   for k, v in d.pairs:
@@ -575,9 +625,22 @@ addF("allfrom", @[tDict], s, _):
 addS("scoped", @[tDict, tFunction]):
   "exch begin exec end"
 
+# D S -> V
+# Gets a symbol S from a dict D, analogous to D.S; if the bound value is a function, then it'll be executed.
+addS(".", @[tDict, tSymbol]):
+  """
+exch
+begin
+  load
+  dup type
+  (Function) eq
+  {exec} 
+  if
+end"""
+
 # ->
 # Shows the symbols inside the last opened dictionary.
-addF("symbols", @[], s, _):
+addF("symbols", @[]):
   for symbol in s.symbols():
     echo symbol
 
@@ -595,8 +658,9 @@ addV("true"):
   newNpsBool(true)
 
 # S -> N
+# "String To Number"
 # Converts a string S into a number N.
-addF("cvi", @[tString], s, _):
+addF("stn", @[tString]):
   let str = String(s.pop()).value
 
   var n: float
@@ -607,3 +671,16 @@ addF("cvi", @[tString], s, _):
     raise newNpsError(fmt"Cannot convert '{str}' into a number")
 
   s.push(newNpsNumber(n))
+
+# S -> S'
+# "String To Symbol"
+# Converts a string S into a symbol S'.
+# An error is thrown if S could not normally be represented by a symbol.
+addF("sts", @[tString]):
+  let str = String(s.pop()).value
+
+  for c in str:
+    if not c.isWordChar():
+      raise newNpsError(fmt"'{str}' cannot be represented by a symbol")
+
+  s.push(newNpsSymbol(str))

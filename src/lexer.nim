@@ -8,15 +8,6 @@ import general
 export general
 
 
-#[
-func newNpsError*(tok: Token, msg: string): NpsError =
-  result = newNpsError(msg)
-  result.addTrace(tok)
-
-func addTrace*(self: NpsError, tok: Token) =
-  self.addTrace(tok.trace())
-]#
-
 type
   TokenType* = enum
     ttNone,
@@ -126,11 +117,11 @@ func `&&=`(a: var bool, b: bool) =
 
 const nonWordChars = {'%', '/', '(', ')', '[', ']', '{', '}'}
 
-func isWordChar(self: Lexer): bool =
-  result = int(self.ch) > 32
-  result &&= int(self.ch) < 127
-  result &&= not self.ch.isSpaceAscii()
-  result &&= self.ch notin nonWordChars
+func isWordChar*(ch: char): bool =
+  result = int(ch) > 32
+  result &&= int(ch) < 127
+  result &&= not ch.isSpaceAscii()
+  result &&= ch notin nonWordChars
 
 func collectString(self: Lexer): Token =
   let
@@ -194,7 +185,7 @@ func collectWord(self: Lexer, kind: TokenType = ttWord, skip: bool = false): Tok
 
   let startIdx = self.idx
 
-  while self.isWordChar():
+  while self.ch.isWordChar():
     self.next()
 
   let lit = self.text[startIdx .. self.idx - 1]
@@ -237,7 +228,7 @@ proc lex*(self: Lexer): seq[Token] =
       self.next()
     elif ch == '/':
       result.add(self.collectWord(TokenType.ttSymbol, true))
-    elif self.isWordChar():
+    elif self.ch.isWordChar():
       result.add(self.collectWord())
     else:
       self.error(fmt"Illegal character '{ch}'")
