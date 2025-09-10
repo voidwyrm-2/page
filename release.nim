@@ -1,3 +1,5 @@
+#! /usr/bin/env nim r
+
 import std/[
   sequtils,
   strutils,
