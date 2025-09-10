@@ -69,6 +69,18 @@ let
 echo "Generating release for version ", version
 echo "The latest release is: ", latestRelease
 
+while true:
+  stdout.write "Continue? (y/n) "
+  let confirm = stdin.readLine().toLower()
+  case confirm:
+  of "y", "yes", "true", "confirm":
+    break
+  of "n", "no", "false", "deny":
+    echo "Aborted"
+    quit 0
+  else:
+    echo "Invalid reply"
+
 var changelogs: seq[string]
 
 for commit in commits:
@@ -91,11 +103,16 @@ for commit in commits:
 
   if ver > latestRelease:
     changelogs.add("https://github.com/voidwyrm-2/npscript/commit/" & hash)
+    echo "Found commit ", ver, "(", hash, ")"
   else:
     break
 
+if changelogs.len() == 0:
+  echo "Aborted, no changelog versions above latest release found"
+  quit 1
+
 try:
-  releaseFile.writeFile("Changelog" & (if changelogs.len() == 1: "s" else: "") & ":\n" & changelogs.join("\n"))
+  releaseFile.writeFile("Changelog" & (if changelogs.len() == 1: "" else: "s") & ":\n" & changelogs.join("\n"))
 
   let relCmd = fmt"gh release create -t 'NPScript {version}' -F {releaseFile} {version} out/*.zip"
   echo runCmd(relCmd)
