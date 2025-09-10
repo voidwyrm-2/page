@@ -123,11 +123,11 @@ addV("langver"):
   newNpsString(langVersion)
 
 # A -> typeof A
-# Returns a string that describes the type of A.
+# Returns a symbol that describes the type of A.
 addF("type", @[tAny]):
   let tstr = $s.pop().kind
 
-  s.push(newNpsString(tstr))
+  s.push(newNpsSymbol(tstr))
 
 # P -> D
 # Evaluates a path P as a NPScript file and returns the value D of the 'export' symbol inside of it.
@@ -633,7 +633,7 @@ exch
 begin
   load
   dup type
-  (Function) eq
+  /Function eq
   {exec} 
   if
 end"""
