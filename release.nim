@@ -103,7 +103,7 @@ for commit in commits:
 
   if ver > latestRelease:
     changelogs.add("https://github.com/voidwyrm-2/npscript/commit/" & hash)
-    echo "Found commit ", ver, "(", hash, ")"
+    echo "Found commit ", ver, " (", hash, ")"
   else:
     break
 
