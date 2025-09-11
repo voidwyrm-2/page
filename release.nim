@@ -84,7 +84,7 @@ while true:
 var changelogs: seq[string]
 
 for commit in commits:
-  let hash = commit[0..7]
+  let hash = commit[0..7].strip()
   var c = commit[8..^1].strip()
 
   let ind = c.findBounds(changelogFinder)
