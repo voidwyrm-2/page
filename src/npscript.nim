@@ -110,6 +110,9 @@ proc main(args: seq[string]) =
     except ValueError:
       q1 fmt"'{logLevelF.value}' is not a valid log level"
 
+  if logger == nil:
+    startGlobalLogger(stdout, 0)
+
   if res.get("h").exists:
     echo argp
     return
