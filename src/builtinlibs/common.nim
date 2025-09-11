@@ -5,18 +5,22 @@ import ../[
 ]
 
 
-template addV*(dict: Dict, name: string, item: NpsValue) =
-  dict[name] = item
+template addV*(dict: Dict, name, docstr: string, item: NpsValue) =
+  block:
+    let val = item
+    val.doc = docstr
+    dict[name] = val
 
-template addF*(dict: Dict, name: string, args: openArray[NpsType], body: untyped) =
-  addV(dict, name):
-    newNpsFunction(args,
-      proc(s {.inject.}: State, r {.inject.}: Runner) =
-        body
+
+template addF*(dict: Dict, name, docstr: string, args: openArray[NpsType], body: untyped) =
+  addV(dict, name, docstr):
+    newNpsFunction(args, proc(s {.inject.}: State, r {.inject.}: Runner) =
+      body
     )
 
-template addS*(dict: Dict, file, name: string, args: openArray[NpsType], body: string) =
-  dict[name] = newNpsFunction(args, file, body)
+template addS*(dict: Dict, file, name, docstr: string, args: openArray[NpsType], body: string) =
+  addV(dict, name, docstr):
+    newNpsFunction(args, file, body)
 
 proc whole*(n: Number, name: static string): int =
   logger.logdv("Converting param '" & name & "' into an integer")

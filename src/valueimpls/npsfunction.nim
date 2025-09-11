@@ -4,19 +4,18 @@ type
 
   Function* = ref object of NpsValue
     args: seq[NpsType]
-
     case isNative: bool
     of true:
       native: NpsNativeProc
     of false:
-    nodes: seq[Node]
+      nodes: seq[Node]
 
 
 proc newNpsFunction*(args: seq[NpsType], native: NpsNativeProc): Function =
-  Function(kind: tFunction, native: native, args: args.reversed(), isNative: true)
+  Function(kind: tFunction, args: args.reversed(), isNative: true, native: native)
 
 proc newNpsFunction*(args: seq[NpsType], nodes: seq[Node]): Function =
-  Function(kind: tFunction, nodes: nodes, args: args.reversed(), isNative: false)
+  Function(kind: tFunction, args: args.reversed(), isNative: false, nodes: nodes)
 
 proc newNpsFunction*(nodes: seq[Node]): Function =
   newNpsFunction(@[], nodes)

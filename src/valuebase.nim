@@ -18,6 +18,7 @@ type
 
   NpsValue* = ref object of RootObj
     kind*: NpsType = tBase
+    doc*: string = ""
 
 
 func `$`*(self: NpsType): string =

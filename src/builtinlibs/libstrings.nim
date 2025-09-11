@@ -9,14 +9,14 @@ import
 
 let lib* = newDict(0)
 
-template addV(name: string, item: NpsValue) =
-  addV(lib, name, item)
+template addV(name: string, item: NpsValue, doc = "") =
+  addV(lib, name, doc, item)
 
-template addF(name: string, args: openArray[NpsType], body: untyped) =
-  addF(lib, name, args, body)
+template addF(name: string, args: openArray[NpsType], body: untyped, doc = "") =
+  addF(lib, name, doc, args, body)
 
-template addS(name: string, args: openArray[NpsType], body: string) =
-  addS(lib, "strings.nps", name, args, body)
+template addS(name: string, args: openArray[NpsType], body: string, doc = "") =
+  addS(lib, "strings.nps", name, doc, args, body)
 
 
 # S -> L

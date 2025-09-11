@@ -39,14 +39,14 @@ static:
 
 let builtins* = newDict(0)
 
-template addV(name: string, item: NpsValue) =
-  addV(builtins, name, item)
+template addV(name, doc: string, item: NpsValue) =
+  addV(builtins, name, doc, item)
 
-template addF(name: string, args: openArray[NpsType], body: untyped) =
-  addF(builtins, name, args, body)
+template addF(name: string, args: openArray[NpsType], body: untyped, doc = "") =
+  addF(builtins, name, doc, args, body)
 
-template addS(name: string, args: openArray[NpsType], body: string) =
-  addS(builtins, "builtins.nps", name, args, body)
+template addS(name: string, args: openArray[NpsType], body: string, doc = "") =
+  addS(builtins, "builtins.nps", name, doc, args, body)
 
 
 template addMathOp(name: string, op: untyped) =
@@ -68,9 +68,8 @@ let defaultSearchPaths = [
 ]
 
 
-let internalPackageRegistry = newTable[string, Dict]([
-  # Functions related to string handling and processing.
-  ("strings", libstrings.lib)
+let internalPackageRegistry = newTable[string, tuple[d: Dict, doc: string]]([
+  ("strings", (libstrings.lib, "Functions related to string handling and processing."))
 ])
 
 
@@ -84,7 +83,13 @@ proc importFile*(s: State, path: string): NpsValue =
 
   if not p.endsWith(".nps"):
     if internalPackageRegistry.hasKey(p):
-      return newNpsDictionary(internalPackageRegistry[p])
+      let
+        entry = internalPackageRegistry[p]
+        val = newNpsDictionary(entry.d)
+
+      val.doc = entry.doc
+
+      return val
 
     let packageSearchPaths = defaultSearchPaths.toSeq()
 
@@ -118,13 +123,82 @@ proc importFile*(s: State, path: string): NpsValue =
 
 # Meta operators
 
-# -> version
-# Returns the current version of the language as a string.
-addV("langver"):
+addV("langver", """
+'langver'
+-> version
+Returns the current version of the language as a string."""):
   newNpsString(langVersion)
 
+# ->
+# Prints a help message to assist people with writing the language.
+addF("help", @[]):
+  echo fmt"Welcome to NPScript {langVersion}", """
+
+
+NPScript is an implementation of PostScript,
+ a programming language created by Adobe to generate graphics for use in generating PDFs and printing,
+ similarly to TeX and LaTeX.
+
+It's still used (albeit rarely) today (as of Sep 11, 2025).
+
+PostScript is a stack-based language,
+ so instead of 1 + 1, expressions are written as 1 1 +,
+ where 1 is pushed onto the stack, then another 1 is is pushed onto the stack. then '+' pops them off,
+ adds them together, and pushes the result (2, in this case)
+
+Additionally, PostScript's math operators use names instead of symbols,
+ so '+' is 'add', '-' is sub, etc
+
+PostScript has 8 data types,
+- null, e.g. 'null'
+- booleans, e.g. 'true', 'false'
+- symbols, e.g. '/2dup', '/over'
+- strings, e.g. '(hello hello)', '(I've been dancin' ontop of cars)'
+- numbers, e.g. '42', '3.14'
+- lists or arrays, e.g. '[1 2 3 4]', '[/a /b /c /d /e /f]'
+- dictionaries or dicts
+- and functions, e.g. '{dup dup}', '{2 div 2 exp 3.14 mul}'
+
+If you want to learn what a builtin symbol does, you can use 'huh?' to see its docstring.
+ e.g. '/add huh?'
+
+If you want to see the docstring (if any) of a value, you can use 'huhp?'.
+ e.g. 'langver huhp?'
+
+You can use 'symbols' to see a list of symbols in the current dictionary.
+
+For more information:
+https://en.wikipedia.org/wiki/PostScript
+"""
+
+# X -> doc of X
+# Returns the docstring attached to a value X.
+# The returned docstring may be empty.
+addF("huhs?", @[tAny]):
+  let val = s.pop()
+  
+  s.push(newNpsString(val.doc))
+
+# S -> doc of X in S
+# Returns the docstring attached to the value bound to a symbol S.
+# The returned docstring may be empty.
+addS("huhl?", @[tSymbol]):
+  "load huhs?"
+
+# X ->
+# Prints the docstring of a value X.
+# The returned docstring may be empty.
+addS("huhp?", @[tAny]):
+  "huhs? ="
+
+# S ->
+# Prints the docstring attached to the value bound to a symbol S.
+# The returned docstring may be empty.
+addS("huh?", @[tSymbol]):
+  "huhl? ="
+
 # X -> typeof X
-# Returns a symbol that describes the type of X.
+# Returns a symbol that describes the type of a value X.
 addF("type", @[tAny]):
   let tstr = $s.pop().kind
 
@@ -597,9 +671,9 @@ addF("def", @[tSymbol, tAny]):
 # S -> X
 # Pushes the value bound to the symbol S onto the stack.
 addF("load", @[tSymbol]):
-  let sym = Symbol(s.pop()).value
+  let name = Symbol(s.pop()).value
 
-  s.push(s.get(sym))
+  s.push(s.get(name))
 
 # S -> D
 # Creates a dictionary D with an initial size S.
@@ -683,19 +757,22 @@ let
   trueSingleton = newNpsBool(true)
   nullSingleton = newNpsNull()
 
-# -> null
-# Produces a null value.
-addV("null"):
+addV("null", """
+'null'
+-> null
+Produces the value of null."""):
   nullSingleton
 
-# -> false
-# Produces the boolean false value.
-addV("false"):
+addV("false", """
+'false'
+-> false
+Produces the boolean false value."""):
   falseSingleton
 
-# -> true
-# Produces the boolean true value.
-addV("true"):
+addV("true", """
+'true'
+-> true
+Produces the boolean true value."""):
   trueSingleton
 
 # V -> len(V)
