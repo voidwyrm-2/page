@@ -5,9 +5,11 @@ type
 func newNpsDictionary*(dict: Dict): Dictionary =
   Dictionary(kind: tDict, dict: dict)
 
-
 method copy*(self: Dictionary): NpsValue =
   self
+
+method len*(self: Dictionary): int =
+  self.dict.len()
 
 method debug(self: Dictionary): string =
   "-dict-"

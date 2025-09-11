@@ -7,6 +7,7 @@ type
   NpsType* = enum
     tBase,
     tAny,
+    tNull,
     tBool,
     tSymbol,
     tString,
@@ -25,6 +26,8 @@ func `$`*(self: NpsType): string =
     raise newException(Exception, "tBase should not be formatted")
   of tAny:
     "Any"
+  of tNull:
+    "Null"
   of tBool:
     "Bool"
   of tSymbol:
@@ -47,7 +50,7 @@ func `==`*(a: NpsValue, b: NpsType): bool =
   a.kind == b or b == NpsType.tAny
 
 method copy*(self: NpsValue): NpsValue {.base.} =
-  NpsValue(kind: self.kind)
+  self
 
 method `+`*(self: NpsValue, other: NpsValue): NpsValue {.base.} =
   unsOp(self, "add", other)
@@ -87,6 +90,9 @@ method `<`*(self: NpsValue, other: NpsValue): bool {.base.} =
 
 method `<=`*(self: NpsValue, other: NpsValue): bool {.base.} =
   self < other or self == other
+
+method len*(self: NpsValue): int {.base.} =
+  raise newNpsError(fmt"operator 'length' cannot be used on {self.kind}")
 
 method format*(self: NpsValue): string {.base.} =
   "--nostringval--"

@@ -1,0 +1,38 @@
+/lswitch {
+1 dict {
+  /else true def
+
+  exch
+  {
+    exec
+    {exec /else false def exit}
+    {pop}
+    ifelse
+  } forall
+
+  else
+  {exec}
+  {pop}
+  ifelse
+} scoped
+} def
+
+/fizzbuzz {
+0 dict {
+  1 1 100 {
+    /n exch def
+    /a n 3 mod 0 eq def
+    /b n 5 mod 0 eq def
+
+    [
+      {{(Fizzbuzz)=} a b and}
+      {{(Fizz)=} a}
+      {{(Buzz)=} b}
+    ]
+    {n =}
+    lswitch
+  } for
+} scoped
+} def
+
+fizzbuzz

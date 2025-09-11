@@ -35,10 +35,9 @@ func getArgs*(self: Function): seq[NpsType] =
   self.args
 
 proc run*(self: Function, s: State, r: Runner) =
-  case self.isNative
-  of true:
+  if self.isNative:
     self.native(s, r)
-  of false:
+  elif self.nodes.len() > 0:
     r(self.nodes)
 
 method debug*(self: Function): string =

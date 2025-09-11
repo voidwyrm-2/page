@@ -1,0 +1,34 @@
+% 'over', a common stack language operation,
+% isn't in PostScript because 'roll' implements part of its functionality
+/over {
+  % A B
+  exch dup % B A A
+  3 -1 roll % A A B
+  exch % A B A
+} def
+
+/fib {
+1 dict { % Create a new dictionary with one initial slot
+  /i exch def % Set 'i' to the amount of numbers given
+
+  [ % lists get their own stack
+    0 1 % The initial Fibonacci values
+    {
+      over over add % a = b; b = a + b
+
+      /i i 1 sub def % Decrement the counter, 'i'
+      i 1 le % If counter is less than 1, exit loop
+      {exit}
+      if
+    } loop % loops in PostScript don't have their own stack
+  ]
+} scoped
+% Scoped is a non-standard function added by my implementation
+% It's short-hand for 'begin ... end',
+% which opens a dictionary for usage;
+% creating a new scope, in effect
+} def
+
+10 fib ==
+% Call 'fib' and print the result
+% '==' must be used because '=' doesn't print the contents of the list

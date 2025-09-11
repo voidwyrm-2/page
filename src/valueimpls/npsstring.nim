@@ -6,7 +6,7 @@ func newNpsString*(value: string): String =
   String(kind: tString, value: value)
 
 method copy*(self: String): NpsValue =
-  newNpsString(self.value)
+  self
 
 method `==`*(self: String, b: NpsValue): bool =
   case b.kind
@@ -14,6 +14,9 @@ method `==`*(self: String, b: NpsValue): bool =
     self.value == String(b).value
   else:
     procCall `==`(self, b)
+
+method len*(self: String): int =
+  self.value.len()
 
 method format*(self: String): string =
   self.value

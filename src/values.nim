@@ -2,7 +2,9 @@ import std/[
   sugar,
   strutils,
   algorithm,
-  math
+  math,
+  tables,
+  strformat
 ]
 
 import
@@ -16,6 +18,7 @@ export
   valuebase
 
 include valueimpls/[
+  npsnull,
   npsbool,
   npssymbol,
   npsstring,

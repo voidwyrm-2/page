@@ -83,7 +83,7 @@ func get*(self: State, name: string): NpsValue =
   raise newNpsError(fmt"Undefined symbol '{name}'")
 
 proc push*(self: State, val: NpsValue) =
-  self.stack.add(val.copy())
+  self.stack.add(val)
 
 func pop*(self: State): NpsValue =
   if self.stack.len() == 0:

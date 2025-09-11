@@ -122,8 +122,8 @@ proc importFile*(s: State, path: string): NpsValue =
 addV("langver"):
   newNpsString(langVersion)
 
-# A -> typeof A
-# Returns a symbol that describes the type of A.
+# X -> typeof X
+# Returns a symbol that describes the type of X.
 addF("type", @[tAny]):
   let tstr = $s.pop().kind
 
@@ -182,28 +182,23 @@ addF("exec", @[tFunction]):
 
 # Stack operators
 
-# A ->
-# Discards a value A.
+# X ->
+# Discards a value X.
 addF("pop", @[tAny]):
   discard s.pop()
 
-# A -> A A'
-# Duplicates a value A.
+# X -> X X'
+# Duplicates a value X.
 # This is not a deep copy.
 addF("dup", @[tAny]):
   let val = s.pop()
   s.push(val)
   s.push(val.copy())
 
-# A B -> B A
-# Exchanges the positions of values A and B.
-addF("exch", @[tAny, tAny]):
-  let
-    b = s.pop()
-    a = s.pop()
-
-  s.push(b)
-  s.push(a)
+# X Y -> Y X
+# Exchanges the positions of values X and Y.
+addS("exch", @[tAny, tAny]):
+  "2 1 roll"
 
 # ... C R -> ...
 # Rotates the top C items on the stack up by R times.
@@ -234,32 +229,32 @@ addF("roll", @[tNumber, tNumber]):
 
 # Arithmetic operators
 
-# A B -> A + B
-# Adds A and B together.
+# X Y -> X + Y
+# Adds X and Y together.
 addMathOp("add", `+`)
 
-# A B -> A - B
-# Substracts A from B.
+# X Y -> X - Y
+# Substracts X from Y.
 addMathOp("sub", `-`)
 
-# A B -> A * B
-# Multiplies A with B.
+# X Y -> X * Y
+# Multiplies X with Y.
 addMathOp("mul", `*`)
 
-# A B -> A / B
-# Divides A with B.
+# X Y -> X / Y
+# Divides X with Y.
 addMathOp("div", `/`)
 
-# A B -> A // B
-# Divides A with B and returns the integral.
+# X Y -> X // Y
+# Divides X with Y and returns the integral.
 addMathOp("idiv", `//`)
 
-# A B -> A % B
-# Gets the modulo A and B.
+# X Y -> X % Y
+# Gets the modulo X and Y.
 addMathOp("mod", `%`)
 
-# A B -> A % B
-# Computes A to the power of B.
+# X Y -> X % Y
+# Computes X to the power of Y.
 addMathOp("exp", `^`)
 
 addF("rand", @[]):
@@ -269,28 +264,28 @@ addF("rand", @[]):
 
 # IO operators
 
-# A ->
-# Takes in a value A and prints it in its formatted form.
+# X ->
+# Takes in a value X and prints it in its formatted form.
 # This function will print any value as a literal, e.g. '(hello)' becomes hello, '/dog' becomes dog,
 # and will not print lists in full.
 addF("=", @[tAny]):
   echo s.pop()
 
-# A ->
-# Takes in a value A and prints it in its debug form.
+# X ->
+# Takes in a value X and prints it in its debug form.
 # This function will print any value as it was in code form except functions,
 # and will print lists in full.
 addF("==", @[tAny]):
   echo s.pop().debug()
 
-# A ->
-# Takes in a value A and prints it in its formatted form without a newline.
+# X ->
+# Takes in a value X and prints it in its formatted form without a newline.
 addF("print", @[tAny]):
   stdout.write $s.pop()
   stdout.flushFile()
 
 # ... S ->
-# Formats a string S and an amount of values akin to C's sprintf.
+# Formats a string S and an amount of values akin to the sprintf of C.
 # The only format specifiers are '%f' and '%d',
 # which format a value in its formatted and debug forms, respectively.
 addF("sprintf", @[tString]):
@@ -395,8 +390,8 @@ addF("writef", @[tString, tString]):
 
 # Conditional operators
 
-# A B -> A == B
-# Tests the equality of A and B.
+# X Y -> X == Y
+# Tests the equality of X and Y.
 addF("eq", @[tAny, tAny]):
   let
     b = s.pop()
@@ -404,8 +399,8 @@ addF("eq", @[tAny, tAny]):
   
   s.push(newNpsBool(a == b))
 
-# A B -> A != B
-# Tests the inequality of A and B.
+# X Y -> X != Y
+# Tests the inequality of X and Y.
 addF("ne", @[tAny, tAny]):
   let
     b = s.pop()
@@ -413,8 +408,8 @@ addF("ne", @[tAny, tAny]):
   
   s.push(newNpsBool(a != b))
 
-# A B -> A > B
-# Compares A and B.
+# X Y -> X > Y
+# Compares X and Y.
 addF("gt", @[tAny, tAny]):
   let
     b = s.pop()
@@ -422,8 +417,8 @@ addF("gt", @[tAny, tAny]):
   
   s.push(newNpsBool(a > b))
 
-# A B -> A > B
-# Compares A and B.
+# X Y -> X > Y
+# Compares X and Y.
 addF("ge", @[tAny, tAny]):
   let
     b = s.pop()
@@ -431,8 +426,8 @@ addF("ge", @[tAny, tAny]):
   
   s.push(newNpsBool(a >= b))
 
-# A B -> A > B
-# Compares A and B.
+# X Y -> X > Y
+# Compares X and Y.
 addF("lt", @[tAny, tAny]):
   let
     b = s.pop()
@@ -440,8 +435,8 @@ addF("lt", @[tAny, tAny]):
   
   s.push(newNpsBool(a < b))
 
-# A B -> A > B
-# Compares A and B.
+# X Y -> X > Y
+# Compares X and Y.
 addF("le", @[tAny, tAny]):
   let
     b = s.pop()
@@ -449,8 +444,8 @@ addF("le", @[tAny, tAny]):
   
   s.push(newNpsBool(a <= b))
 
-# A B -> A and B
-# Returns true if bools A and B are true, otherwise false.
+# X Y -> X and Y
+# Returns true if bools X and Y are true, otherwise false.
 addF("and", @[tBool, tBool]):
   let
     b = Bool(s.pop()).value
@@ -458,8 +453,8 @@ addF("and", @[tBool, tBool]):
 
   s.push(newNpsBool(a and b))
 
-# A B -> A or B
-# Returns true if bools A or B are true, otherwise false.
+# X Y -> X or Y
+# Returns true if bools X or Y are true, otherwise false.
 addF("or", @[tBool, tBool]):
   let
     b = Bool(s.pop()).value
@@ -478,7 +473,7 @@ addF("if", @[tBool, tFunction]):
     f.run(s, r)
 
 # B F F' ->
-# Executes F if a boolean B is true, otherwise executes F'.
+# Executes F if B is true, otherwise executes F'.
 addF("ifelse", @[tBool, tFunction, tFunction]):
   let
     fFalse = Function(s.pop())
@@ -559,10 +554,38 @@ addF("forall", @[tList, tFunction]):
       break
 
 
+# List operators
+
+# S -> L
+# Creates a list D with a specified size S.
+addF("array", @[tNumber]):
+  let length = Number(s.pop()).whole("S")
+
+  s.push(newNpsList(length))
+
+# L I -> L[I]
+# Gets the value at an index I of a list L.
+addF("get", @[tList, tNumber]):
+  let
+    ind = Number(s.pop()).whole("I")
+    arr = List(s.pop())
+
+  s.push(arr[ind])
+
+# L I X -> L[I] = X
+# Sets an index I of a list L to a value X.
+addF("put", @[tList, tNumber, tAny]):
+  let
+    val = s.pop()
+    ind = Number(s.pop()).whole("I")
+    arr = List(s.pop())
+
+  arr[ind] = val
+
 # Dict operators
 
-# S A ->
-# Binds A to the symbol S.
+# S X ->
+# Binds X to the symbol S inside the current dictionary.
 addF("def", @[tSymbol, tAny]):
   let
     val = s.pop()
@@ -570,7 +593,7 @@ addF("def", @[tSymbol, tAny]):
   
   s.set(sym, val)
 
-# S -> A
+# S -> X
 # Pushes the value bound to the symbol S onto the stack.
 addF("load", @[tSymbol]):
   let sym = Symbol(s.pop()).value
@@ -578,7 +601,7 @@ addF("load", @[tSymbol]):
   s.push(s.get(sym))
 
 # S -> D
-# Creates a dictionary D with the specified size S.
+# Creates a dictionary D with an initial size S.
 addF("dict", @[tNumber]):
   let
     size = Number(s.pop()).whole("S")
@@ -647,15 +670,32 @@ addF("symbols", @[]):
 
 # Misc operators
 
+let
+  falseSingleton = newNpsBool(false)
+  trueSingleton = newNpsBool(true)
+  nullSingleton = newNpsNull()
+
+# -> null
+# Produces a null value.
+addV("null"):
+  nullSingleton
+
 # -> false
-# Produces the boolean false singleton.
+# Produces the boolean false value.
 addV("false"):
-  newNpsBool(false)
+  falseSingleton
 
 # -> true
-# Produces the boolean true singleton.
+# Produces the boolean true value.
 addV("true"):
-  newNpsBool(true)
+  trueSingleton
+
+# V -> len(V)
+# Gets the length of a value V
+addF("length", @[tAny]):
+  let length = s.pop().len()
+
+  s.push(newNpsNumber(float32(length)))
 
 # S -> N
 # "String To Number"

@@ -6,7 +6,7 @@ func newNpsNumber*(value: float): Number =
   Number(kind: tNumber, value: value)
 
 method copy*(self: Number): NpsValue =
-  newNpsNumber(self.value)
+  self
 
 method `+`*(self: Number, b: NpsValue): NpsValue =
   case b.kind
@@ -63,7 +63,7 @@ method `==`*(self: Number, b: NpsValue): bool =
   of tNumber:
     self.value == Number(b).value
   else:
-    procCall `==`(self, b)
+    false
 
 method `>`*(self: Number, b: NpsValue): bool =
   case b.kind

@@ -68,8 +68,6 @@ proc exec(self: Interpreter, n: Node) =
       f.run(self.state, proc(nodes: seq[Node]) = self.exec(nodes))
     else:
       self.state.push(v)
-  #else:
-  #  raise newNpsError(fmt"Unexpected node {n}")
 
 proc exec*(self: Interpreter, nodes: openArray[Node]) =
   for n in nodes:
