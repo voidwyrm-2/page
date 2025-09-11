@@ -74,7 +74,7 @@ proc parse*(self: Argparser, args: openArray[string]): ParseResult =
 
     if hyphens == 0:
       if lastFlag.f != nil:
-        lastFlag = ("", nil)
+        lastFlag.f.value = arg
       else:
         result.leftover.add(arg)
     elif hyphens == 1 or hyphens == 2:

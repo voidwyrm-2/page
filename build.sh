@@ -131,6 +131,8 @@ if [ "$1" = "native" ]; then
 
     zcomp "windows" "amd64" "x86_64-windows"
     zcomp "windows" "i386" "x86-windows"
+elif [ "$1" = "targ" ]; then
+    zcomp "$2" "$3" "$4"
 elif [ "$1" = "wasi" ]; then
     compwasi
 elif [ "$1" = "macos" ]; then

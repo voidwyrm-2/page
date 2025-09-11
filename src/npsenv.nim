@@ -2,10 +2,11 @@ import std/[
   os,
   random,
   strformat
-  
 ]
 
-import npsdata
+import
+  npsdata,
+  logging
 
 
 randomize()
@@ -38,22 +39,22 @@ proc writeStdlib*(force: bool) =
     return
 
   if force:
-    echo "Writing stdlib because --fstd/--force-std was passed..."
+     logger.log "Writing stdlib because --fstd/--force-std was passed..."
   else:
-    echo "Writing stdlib for the first time..."
+    logger.log "Writing stdlib for the first time..."
 
-  echo "Writing to ", npsStd
+  logger.log "Writing to " & npsStd
 
   for item in stdFiles:
-    echo "Writing '", item.path, "'..."
+    logger.log fmt"Writing '{item.path}'..."
 
     try:
       let path = (npsStd / item.path)
       path.writeFile(item.data)
-      echo "Written to ", path
+      logger.log "Written to " & path
     except IOError as e:
-      echo "Could not write '", item.path, "' to ", npsStd, ":"
-      echo e.msg
+      logger.log fmt"Could not write '{item.path}' to {npsStd}:"
+      logger.log " " & e.msg
 
   echo ""
 

@@ -2,8 +2,10 @@ type
   Dictionary* = ref object of NpsValue
     dict: Dict
 
-func newNpsDictionary*(dict: Dict): Dictionary =
-  Dictionary(kind: tDict, dict: dict)
+proc newNpsDictionary*(dict: Dict): Dictionary =
+  logger.logdv("Creating new Dictionary")
+  result = Dictionary(kind: tDict, dict: dict)
+  logger.logdv("Dictionary created")
 
 method copy*(self: Dictionary): NpsValue =
   self

@@ -11,7 +11,8 @@ import
   valuebase,
   state,
   lexer,
-  parser
+  parser,
+  logging
 
 export
   general,

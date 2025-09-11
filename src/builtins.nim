@@ -15,6 +15,7 @@ import
   state,
   values,
   lexer,
+  logging,
   builtinlibs/[
     common,
     libstrings
@@ -603,11 +604,18 @@ addF("load", @[tSymbol]):
 # S -> D
 # Creates a dictionary D with an initial size S.
 addF("dict", @[tNumber]):
-  let
-    size = Number(s.pop()).whole("S")
-    d = newNpsDictionary(newDict(int(size)))
+  logger.logdv("'dict' was called")
+  logger.logdv("The stack is currently: " & $s.stack())
 
+  logger.logdv("Popping dictionary size (param S)...")
+  let size = Number(s.pop()).whole("S")
+
+  logger.logdv(fmt"Dictionary size is {size}, initializing dictionary...")
+  let d = newNpsDictionary(newDict(int(size)))
+
+  logger.logdv("Dictionary initialized, pushing...")
   s.push(d)
+  logger.logdv("Dictionary pushed")
 
 # D ->
 # Opens a dictionary D for usage.
