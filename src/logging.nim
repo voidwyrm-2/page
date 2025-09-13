@@ -21,7 +21,7 @@ proc startGlobalLogger*(file: File, level: uint8 = 0) =
   logger = newLogger(file, level)
 
 proc log*(self: Logger, msg: string, level: uint8) =
-  if self.level >= level:
+  if self != nil and self.level >= level:
     self.file.writeLine "(L" & $level & ") " & msg
 
 proc log*(self: Logger, msg: string, level: LogLevel = llInfo) =

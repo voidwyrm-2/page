@@ -91,7 +91,7 @@ func pop*(self: State): NpsValue =
 
   self.stack.pop()
 
-proc check*(self: State, items: openArray[NpsType]) =
+proc check*(self: State, items: openArray[NpsType], argNames: openArray[string] = []) =
   if self.stack.len() < items.len():
     raise newNpsError(fmt"Expected {items.len()} items on the stack but found {self.stack.len()} items instead")
 
@@ -99,7 +99,13 @@ proc check*(self: State, items: openArray[NpsType]) =
 
   for pst in items:
     if self.stack[i] != pst:
-      raise newNpsError(fmt"Expected type {pst} for stack position {i}, but found type {self.stack[i].kind} instead")
+      let itemName =
+        if argNames.len() > 0:
+          fmt"argument {argNames[i]}"
+        else:
+          fmt"stack position {i}"
+
+      raise newNpsError(fmt"Expected type {pst} for {itemName}, but found type {self.stack[i].kind} instead")
 
     i -= 1
 

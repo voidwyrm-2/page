@@ -1,0 +1,110 @@
+NPScript is an implementation of PostScript,
+a programming language created by Adobe to generate graphics for use in generating PDFs and printing,
+similarly to TeX and LaTeX.
+
+It's still used (albeit rarely) today (as of Sep 11, 2025).
+
+PostScript is a stack-based language,
+so instead of `1 + 1`, expressions are written as `1 1 +`,
+where `1` is pushed onto the stack, then another `1` is is pushed onto the stack. then `+` pops them off,
+adds them together, and pushes the result (2, in this case)
+
+Additionally, PostScript's math operators use names instead of symbols,
+so '+' is `(.cyan)add(.reset)`, '-' is `(.cyan)sub(.reset)`, etc
+
+For context, printing in PostScript is done using the `(.cyan)=(.reset)` and `(.cyan)==(.reset)`.
+The main difference between these is that `(.cyan)==(.reset)` prints lists fully and `(.cyan)=(.reset)` does not.
+
+
+(.green)Data types(.reset)
+PostScript has 8 datatypes.
+
+- (.header)null(.reset)
+  Null represents the absence of a value.
+  It only has form, `(.cyan)null(.reset)`.
+  Example:
+   (.cyan)null type = (.comment)% 'Null'(.reset)
+
+- (.header)booleans(.reset)
+  A boolean is a value with two state, `(.orange)true(.reset)` and `(.orange)false(.reset)`.
+  Example:
+   (.orange)1 2 (.cyan)eq = (.comment)% 'false'
+   (.orange)true (.cyan)= (.comment)% 'true'(.reset)
+
+- (.header)numbers(.reset)
+  A number is a numeric value, represented by a 32-bit float.
+  Example:
+   (.orange)20 10 (.cyan)add = (.comment)% '30'
+   (.orange)20 10 (.cyan)sub = (.comment)% '10'
+   (.orange)20 10 (.cyan)mul = (.comment)% '200'
+   (.orange)20 10 (.cyan)div = (.comment)% '2'(.reset)
+
+- (.header)strings(.reset)
+  a string is simply a snippet of text which can contain any characters,
+  although `(` and `)` have to be escaped with `\`.
+  Unlike other languages, strings in PostScript are created with parentheses.
+  Example:
+   (.sage)(Cause you're a natural) (.cyan)= (.comment)% 'Cause you're a natural'
+   (.sage)(You have to be so cold) (.cyan)== (.comment)% '(You have to be so cold)'
+   (.sage)(10) (.magenta)stn (.orange)40 (.magenta)add (.cyan)== (.comment)% '50'(.reset)
+
+- (.header)symbols(.reset)
+  A symbol is an abstract 'name' or 'descriptor',
+  they're much more restrictive in what characters they can contain than strings,
+  and are used as variable names.
+  They're similar to atoms in languages like Lisp and Elixir.
+  Symbols can made up of any non-space and non-control ASCII character; they cannot contain unicode characters.
+  Symbols are created with `/`
+  Example:
+   (.yellow)/Jacob (.cyan)= (.comment)% 'Jacob'
+   (.yellow)/roses (.cyan)== (.comment)% '/roses'
+   (.yellow)/catdog (.sage)(catdog) (.cyan)eq = (.comment)% 'false'(.reset)
+
+- (.header)lists(.reset)
+  A list, or array, is a collection of values, which can be any length.
+  Lists are created with brackets or with the `(.cyan)array(.reset)` function.
+  Example:
+   (.cyan)[(.yellow)/a /b /c /d /e /f(.cyan)] == (.comment)% '[/a /b /c /d /e /f]'
+   (.orange)0 (.cyan)array == (.comment)% '[]'
+   (.orange)3 (.cyan)array == (.comment)% '[null null null]'(.reset)
+
+- (.header)dictionaries(.reset)
+  A dictionary, or dict, is a collection of values, like a list, but each value attached to a key
+  Dictionaries are created with the `(.cyan)dict(.reset)` function, they have no literal form.
+  To read and write from/to a dictionary, you first need to open it with `(.cyan)begin(.reset)`;
+  to read from it, just type the name of the key, e.g. `(.magenta)pi(.reset)`;
+  to write to it, use `(.cyan)def(.reset)` with a symbol, e.g. `(.yellow)/pi (.orange)3.14 (.cyan)def(.reset)`;
+  you can then close it with `(.cyan)end(.reset)` when you're done.
+  When the interpreter is first started,
+  a global dictionary is initialized with builtin functions and symbols,
+  so `(.cyan)def(.reset)` can be used at any time.
+  Example:
+   (.yellow)/person (.orange)3 (.cyan)dict def
+   (.magenta)person (.cyan)begin
+     (.yellow)/name (.sage)(Jacob) (.cyan)def
+     (.yellow)/age (.orange)21 (.cyan)def
+   end
+   (.magenta)person (.cyan)length = (.comment)% '2'(.reset)
+
+- (.header)functions(.reset)
+  A function, or procedure, is a collection of words that allow for code reusing.
+  Functions are created with braces;
+  A function is put directly onto the stack when it's created, and must be assigned to a name manually using `(.cyan)def(.reset)`.
+  If a symbol is read from and that symbol is bound to a function, that function will get executed automatically;
+  the `(.cyan)load(.reset)` function can be used to read the value bound to a symbol without executed it.
+  Example:
+   (.yellow)/circleArea (.cyan){(.orange)2 (.cyan)div (.orange)2 (.cyan)exp (.magenta)pi (.cyan)mul} def
+   (.orange)16 (.magenta)circleArea (.comment)% '201.0619...676'(.reset)
+
+
+If you want to learn what a builtin symbol does, you can use 'huh?' to see its docstring.
+e.g. `(.yellow)/add (.magenta)huh?(.reset)`
+
+If you want to see the docstring (if any) of a value, you can use '(.magenta)huhp?(.reset)'.
+e.g. `(.magenta)langver huhp?(.reset)`
+
+You can use `(.magenta)symbols(.reset)` to see a list of symbols in the current dictionary.
+
+For more information:
+(.br-blue)https://en.wikipedia.org/wiki/PostScript
+https://personal.math.ubc.ca/~cass/graphics/manual/index.html#main(.reset) (a better tutorial than this help message)

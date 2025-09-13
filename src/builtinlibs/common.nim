@@ -1,3 +1,5 @@
+import std/strutils
+
 import ../[
   values,
   state,
@@ -5,20 +7,22 @@ import ../[
 ]
 
 
-template addV*(dict: Dict, name, docstr: string, item: NpsValue) =
+template addV*(dict: Dict, name, docstr: static string, item: NpsValue) =
   block:
-    let val = item
-    val.doc = docstr
+    let
+      val = item
+      sdocstr {.compileTime.} = docstr.strip()
+    val.doc = sdocstr
     dict[name] = val
 
 
-template addF*(dict: Dict, name, docstr: string, args: openArray[NpsType], body: untyped) =
+template addF*(dict: Dict, name, docstr: static string, args: openArray[NpsType], body: untyped) =
   addV(dict, name, docstr):
     newNpsFunction(args, proc(s {.inject.}: State, r {.inject.}: Runner) =
       body
     )
 
-template addS*(dict: Dict, file, name, docstr: string, args: openArray[NpsType], body: string) =
+template addS*(dict: Dict, file, name, docstr: static string, args: openArray[NpsType], body: string) =
   addV(dict, name, docstr):
     newNpsFunction(args, file, body)
 

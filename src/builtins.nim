@@ -5,13 +5,15 @@ import std/[
   strformat,
   random,
   os,
-  sequtils
+  sequtils,
+  math
 ]
 
 from system/nimscript import nil
 
 import
   npsenv,
+  general,
   state,
   values,
   lexer,
@@ -39,13 +41,13 @@ static:
 
 let builtins* = newDict(0)
 
-template addV(name, doc: string, item: NpsValue) =
+template addV(name, doc: static string, item: NpsValue) =
   addV(builtins, name, doc, item)
 
-template addF(name: string, args: openArray[NpsType], body: untyped, doc = "") =
-  addF(builtins, name, doc, args, body)
+template addF(name: static string, args: openArray[NpsType], body: untyped) =
+  addF(builtins, name, "", args, body)
 
-template addS(name: string, args: openArray[NpsType], body: string, doc = "") =
+template addS(name, doc: static string, args: openArray[NpsType], body: string) =
   addS(builtins, "builtins.nps", name, doc, args, body)
 
 
@@ -67,11 +69,9 @@ let defaultSearchPaths = [
   npsPkg
 ]
 
-
-let internalPackageRegistry = newTable[string, tuple[d: Dict, doc: string]]([
-  ("strings", (libstrings.lib, "Functions related to string handling and processing."))
+let internalPackageRegistry = newTable[string, (Dict, string)]([
+  ("strings", (libstrings.lib, "'strings'\nFunctions related to string handling and processing."))
 ])
-
 
 proc importFile*(s: State, path: string): NpsValue =
   var p = path
@@ -84,10 +84,10 @@ proc importFile*(s: State, path: string): NpsValue =
   if not p.endsWith(".nps"):
     if internalPackageRegistry.hasKey(p):
       let
-        entry = internalPackageRegistry[p]
-        val = newNpsDictionary(entry.d)
+        (d, doc) = internalPackageRegistry[p]
+        val = newNpsDictionary(d)
 
-      val.doc = entry.doc
+      val.doc = doc
 
       return val
 
@@ -123,53 +123,31 @@ proc importFile*(s: State, path: string): NpsValue =
 
 # Meta operators
 
-addV("langver", """
+addV("langver",
+"""
 'langver'
 -> version
-Returns the current version of the language as a string."""):
+Returns the current version of the language as a string.
+"""):
   newNpsString(langVersion)
+
+const
+  rawHelpMessage = staticRead("data/helpmsg.txt").strip()
+  rawHelpMessageExtended = staticRead("data/helpmsgext.txt").strip()
+
+let
+  helpMessage = rawHelpMessage.colorize()
+  helpMessageExtended = rawHelpMessageExtended.colorize()
 
 # ->
 # Prints a help message to assist people with writing the language.
 addF("help", @[]):
-  echo fmt"Welcome to NPScript {langVersion}", """
+  echo fmt"Welcome to NPScript {langVersion}", "\n\n", helpMessage
 
-
-NPScript is an implementation of PostScript,
- a programming language created by Adobe to generate graphics for use in generating PDFs and printing,
- similarly to TeX and LaTeX.
-
-It's still used (albeit rarely) today (as of Sep 11, 2025).
-
-PostScript is a stack-based language,
- so instead of 1 + 1, expressions are written as 1 1 +,
- where 1 is pushed onto the stack, then another 1 is is pushed onto the stack. then '+' pops them off,
- adds them together, and pushes the result (2, in this case)
-
-Additionally, PostScript's math operators use names instead of symbols,
- so '+' is 'add', '-' is sub, etc
-
-PostScript has 8 data types,
-- null, e.g. 'null'
-- booleans, e.g. 'true', 'false'
-- symbols, e.g. '/2dup', '/over'
-- strings, e.g. '(hello hello)', '(I've been dancin' ontop of cars)'
-- numbers, e.g. '42', '3.14'
-- lists or arrays, e.g. '[1 2 3 4]', '[/a /b /c /d /e /f]'
-- dictionaries or dicts
-- and functions, e.g. '{dup dup}', '{2 div 2 exp 3.14 mul}'
-
-If you want to learn what a builtin symbol does, you can use 'huh?' to see its docstring.
- e.g. '/add huh?'
-
-If you want to see the docstring (if any) of a value, you can use 'huhp?'.
- e.g. 'langver huhp?'
-
-You can use 'symbols' to see a list of symbols in the current dictionary.
-
-For more information:
-https://en.wikipedia.org/wiki/PostScript
-"""
+# ->
+# Prints an extended help message to assist people with writing the language.
+addF("exthelp", @[]):
+  echo fmt"Welcome to NPScript {langVersion}", "\n\n", helpMessageExtended
 
 # X -> doc of X
 # Returns the docstring attached to a value X.
@@ -179,22 +157,31 @@ addF("huhs?", @[tAny]):
   
   s.push(newNpsString(val.doc))
 
-# S -> doc of X in S
-# Returns the docstring attached to the value bound to a symbol S.
-# The returned docstring may be empty.
-addS("huhl?", @[tSymbol]):
+addS("huhl?",
+"""
+'huhl?'
+S -> doc of X in S
+Returns the docstring attached to the value bound to a symbol S.
+The returned docstring may be empty.
+""", @[tSymbol]):
   "load huhs?"
 
-# X ->
-# Prints the docstring of a value X.
-# The returned docstring may be empty.
-addS("huhp?", @[tAny]):
+addS("huhp?",
+"""
+'huhp?'
+X ->
+Prints the docstring of a value X.
+The returned docstring may be empty.
+""", @[tAny]):
   "huhs? ="
 
-# S ->
-# Prints the docstring attached to the value bound to a symbol S.
-# The returned docstring may be empty.
-addS("huh?", @[tSymbol]):
+addS("huh?",
+"""
+'huh?'
+S ->
+Prints the docstring attached to the value bound to a symbol S.
+The returned docstring may be empty.
+""", @[tSymbol]):
   "huhl? ="
 
 # X -> typeof X
@@ -234,9 +221,13 @@ addF("importdef", @[tString]):
 
   s.set("~" & path.lastPathPart().changeFileExt(""), val)
 
-# ->
-# Completely stops the program.
-addS("quit", @[], "0 quitn")
+addS("quit",
+"""
+'quit'
+->
+Completely stops the program.
+""", @[]):
+  "0 quitn"
 
 # E ->
 # Completely stops the program with an exit code E.
@@ -270,9 +261,11 @@ addF("dup", @[tAny]):
   s.push(val)
   s.push(val.copy())
 
-# X Y -> Y X
-# Exchanges the positions of values X and Y.
-addS("exch", @[tAny, tAny]):
+addS("exch",
+"""
+X Y -> Y X
+Exchanges the positions of values X and Y.
+""", @[tAny, tAny]):
   "2 1 roll"
 
 # ... C R -> ...
@@ -331,6 +324,12 @@ addMathOp("mod", `%`)
 # X Y -> X % Y
 # Computes X to the power of Y.
 addMathOp("exp", `^`)
+
+addV("pi", """
+-> pi
+Returns the value of Pi.
+"""):
+  newNpsNumber(float32(PI))
 
 addF("rand", @[]):
   var r = initRand()
@@ -415,7 +414,13 @@ addF("sprintf", @[tString]):
   
   s.push(newNpsString(formatted))
 
-addS("printf", @[tString], "sprintf print")
+addS("printf",
+"""
+'printf'
+Formats with 'sprintf', then prints the result to stdout.
+Shorthand for 'sprintf print'
+""", @[tString]):
+  "sprintf print"
 
 # ->
 # Prints the stack without effecting it.
@@ -725,14 +730,22 @@ addF("allfrom", @[tDict]):
   for k, v in d.pairs:
     s.set(k, v)
 
-# D F ->
-# Takes a dictionary D, opens D, executes F, then closes D.
-addS("scoped", @[tDict, tFunction]):
+
+addS("scoped",
+"""
+'scoped'
+D F ->
+Takes a dictionary D, opens D, executes F, then closes D.
+Acts as shorthand for 'begin ... end'.
+""", @[tDict, tFunction]):
   "exch begin exec end"
 
-# D S -> V
-# Gets a symbol S from a dict D, analogous to D.S; if the bound value is a function, then it'll be executed.
-addS(".", @[tDict, tSymbol]):
+addS(".",
+"""
+'.' (dot)
+D S -> V
+Gets a symbol S from a dict D, analogous to D.S; if the bound value is a function, then it'll be executed.
+""", @[tDict, tSymbol]):
   """
 exch
 begin
@@ -753,8 +766,8 @@ addF("symbols", @[]):
 # Misc operators
 
 let
-  falseSingleton = newNpsBool(false)
   trueSingleton = newNpsBool(true)
+  falseSingleton = newNpsBool(false)
   nullSingleton = newNpsNull()
 
 addV("null", """
@@ -763,17 +776,17 @@ addV("null", """
 Produces the value of null."""):
   nullSingleton
 
-addV("false", """
-'false'
--> false
-Produces the boolean false value."""):
-  falseSingleton
-
 addV("true", """
 'true'
 -> true
 Produces the boolean true value."""):
   trueSingleton
+
+addV("false", """
+'false'
+-> false
+Produces the boolean false value."""):
+  falseSingleton
 
 # V -> len(V)
 # Gets the length of a value V
