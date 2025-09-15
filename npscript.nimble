@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.19.2"
+version       = "0.19.3"
 author        = "Nuclear Pasta"
 description   = "A PostScript implementation"
 license       = "Apache-2.0"
@@ -13,3 +13,5 @@ bin           = @["npscript"]
 requires "nim >= 2.2.4"
 
 requires "noise >= 0.1.10"
+
+requires "nargparse"

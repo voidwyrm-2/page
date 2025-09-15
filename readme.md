@@ -22,6 +22,7 @@ If you aren't sure which to pick, go with `windows-amd64`, `linux-amd64`, or `ma
 git clone https://github.com/voidwyrm-2/npscript
 cd npscript
 nimble install noise
+nimble install https://github.com/voidwyrm-2/nargparse
 chmod +x build.sh
 ./build.sh host
 ./out/host/npscript -v
@@ -34,6 +35,8 @@ Addtionally, if you want to cross-compile or build in release mode, you'll need
 ```sh
 git clone https://github.com/voidwyrm-2/npscript
 cd npscript
+nimble install noise
+nimble install https://github.com/voidwyrm-2/nargparse
 nimble install zigcc
 chmod +x build.sh
 ./build.sh native
@@ -46,6 +49,8 @@ For building for Mac, you'll need
 git clone https://github.com/voidwyrm-2/npscript
 cd npscript
 xcode-select --install
+nimble install noise
+nimble install https://github.com/voidwyrm-2/nargparse
 chmod +x build.sh
 ./build.sh macos
 ```
@@ -58,6 +63,8 @@ For building for WASM, you'll need
 ```sh
 git clone https://github.com/voidwyrm-2/npscript
 cd npscript
+nimble install noise
+nimble install https://github.com/voidwyrm-2/nargparse
 chmod +x build.sh
 ./build.sh wasi
 ```
