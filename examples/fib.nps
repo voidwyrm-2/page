@@ -8,7 +8,7 @@
 } def
 
 /fib {
-1 dict { % Create a new dictionary with one initial slot
+1 dict begin % Create a new dictionary with one initial slot
   /i exch def % Set 'i' to the amount of numbers given
 
   [ % lists get their own stack
@@ -22,7 +22,7 @@
       if
     } loop % loops in PostScript don't have their own stack
   ]
-} scoped
+end
 % Scoped is a non-standard function added by my implementation
 % It's short-hand for 'begin ... end',
 % which opens a dictionary for usage;

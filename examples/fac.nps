@@ -1,0 +1,9 @@
+/fac {
+1 dict begin
+  /n exch def
+  [1 1 n {} for]
+  1 exch {mul} forall
+end
+} def
+
+10 fac =

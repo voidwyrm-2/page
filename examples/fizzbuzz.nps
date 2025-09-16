@@ -1,5 +1,5 @@
 /lswitch {
-1 dict {
+1 dict begin
   /else true def
 
   exch
@@ -14,11 +14,11 @@
   {exec}
   {pop}
   ifelse
-} scoped
+end
 } def
 
 /fizzbuzz {
-0 dict {
+0 dict begin
   1 1 100 {
     /n exch def
     /a n 3 mod 0 eq def
@@ -32,7 +32,7 @@
     {n =}
     lswitch
   } for
-} scoped
+end
 } def
 
 fizzbuzz
