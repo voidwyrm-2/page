@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.19.4"
+version       = "0.19.5"
 author        = "Nuclear Pasta"
 description   = "A PostScript implementation"
 license       = "Apache-2.0"
@@ -12,6 +12,6 @@ bin           = @["npscript"]
 
 requires "nim >= 2.2.4"
 
-requires "noise >= 0.1.10"
-
-requires "nargparse"
+requires "https://github.com/jangko/nim-noise >= 0.1.10"
+requires "https://github.com/voidwyrm-2/nargparse >= 0.1.0"
+requires "https://github.com/nitely/nim-regex >= 0.26.3"

@@ -2,8 +2,11 @@ import std/[
   strutils,
   strformat,
   sequtils,
-  re
+  sugar
 ]
+
+import pkg/regex
+
 
 type
   NpsError* = ref object of CatchableError
@@ -32,8 +35,8 @@ const
   nameSpecifier = bgTag & brTag & r"[a-zA-Z]+"
   rgbSpecifier = bgTag & r"[0-9]{1,3},[0-9]{1,3},[0-9]{1,3}"
   colorFinderSpec = fmt"\(\.({nameSpecifier}|{rgbSpecifier})\)"
-
-let colorFinder = re colorFinderSpec
+  
+  colorFinder = re2 colorFinderSpec
 
 func getStyleForRGB(r, g, b: uint, background: bool): string =
   if r > 255 or g > 255 or b > 255:
@@ -125,15 +128,4 @@ func getStyleForName(name: string): string =
   result = "\e[" & $code & "m"
 
 proc colorize*(str: string): string =
-  result = str
-
-  var match = result.findBounds(colorFinder)
-
-  while match.first != -1:
-    let name = result[match.first..match.last][2..^1][0..^2]
-
-    #logger.logd(fmt"found style specifier: '{name}'")
-
-    result = result[0..match.first - 1] & name.getStyleForName() & result[match.last + 1..^1]
-
-    match = result.findBounds(colorFinder)
+  str.replace(colorFinder, (m, s) => s[m.group(0)].getStyleForName())

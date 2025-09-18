@@ -1,3 +1,5 @@
+BINDIR="out"
+
 tryq() {
     if [ $? -ne 0 ]; then
         exit 1
@@ -6,7 +8,7 @@ tryq() {
 
 compwasi() {
     targetpair="wasm32-wasi"
-    outpath="out/$targetpair"
+    outpath="$BINDIR/$targetpair"
     result="$outpath/npscript.wasm"
 
     nim c \
@@ -48,7 +50,7 @@ compwasi() {
 
 compmacos() {
     targetpair="macosx-arm64"
-    outpath="out/$targetpair"
+    outpath="$BINDIR/$targetpair"
     result="$outpath/npscript"
     
     nim c \
@@ -69,7 +71,7 @@ compmacos() {
     zip -r "$targetpair" "$targetpair"
     tryq
 
-    mv "$targetpair.zip" out/
+    mv "$targetpair.zip" "$BINDIR/"
     tryq
 
     rm -rf "$targetpair"
@@ -88,7 +90,7 @@ zcomp() {
 
     llvmTriple="$3"
 
-    outpath="out/$llvmTriple"
+    outpath="$BINDIR/$llvmTriple"
     result="$outpath/npscript$ext"
     
     nim c \
@@ -111,7 +113,7 @@ zcomp() {
     zip -r "$llvmTriple" "$llvmTriple"
     tryq
 
-    mv "$llvmTriple.zip" out/
+    mv "$llvmTriple.zip" "$BINDIR/"
     tryq
 
     rm -rf "$llvmTriple"
@@ -120,14 +122,20 @@ zcomp() {
     echo "built '$1/$2' with LLVM triple '$llvmTriple'"
 }
 
+if [ ! -d "$BINDIR/" ]; then
+    mkdir "$BINDIR/"
+fi
+
+
 if [ "$1" = "native" ]; then
+    rm -rf "$BINDIR/*"
     zcomp "linux" "amd64" "x86_64-linux-gnu"
     zcomp "linux" "i386" "x86-linux-gnu"
     zcomp "linux" "arm64" "aarch64-linux-gnu"
 
-    zcomp "linux" "amd64" "x86_64-linux-musl" "-static" "-static"
-    zcomp "linux" "i386" "x86-linux-musl" "-static" "-static"
-    zcomp "linux" "arm64" "aarch64-linux-musl" "-static" "-static"
+    zcomp "linux" "amd64" "x86_64-linux-musl"
+    zcomp "linux" "i386" "x86-linux-musl"
+    zcomp "linux" "arm64" "aarch64-linux-musl"
 
     zcomp "windows" "amd64" "x86_64-windows"
     zcomp "windows" "i386" "x86-windows"
@@ -138,14 +146,15 @@ elif [ "$1" = "wasi" ]; then
 elif [ "$1" = "macos" ]; then
     compmacos
 elif [ "$1" = "host" ]; then
+    rm -rf "$BINDIR/host/"
     nim c \
     -d:release \
     --forceBuild:on \
-    -o:out/host/npscript \
+    -o:"$BINDIR/host/npscript" \
     src/npscript.nim
 elif [ "$1" = "" ]; then
     nim c \
-    -o:out/npscript \
+    -o:"$BINDIR/npscript" \
     src/npscript.nim
 elif [ "$1" = "help" ]; then
     echo "Usage:"
