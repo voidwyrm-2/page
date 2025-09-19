@@ -91,23 +91,17 @@ func pop*(self: State): NpsValue =
 
   self.stack.pop()
 
-proc check*(self: State, items: openArray[NpsType], argNames: openArray[string] = []) =
-  if self.stack.len() < items.len():
-    raise newNpsError(fmt"Expected {items.len()} items on the stack but found {self.stack.len()} items instead")
+proc check*(self: State, args: FuncArgs) =
+  if self.stack.len < args.len:
+    raise newNpsError(fmt"Expected {args.len} items on the stack but found {self.stack.len} items instead")
 
-  var i = self.stack.len() - 1
+  var i = self.stack.len - 1
 
-  for pst in items:
-    if self.stack[i] != pst:
-      let itemName =
-        if argNames.len() > 0:
-          fmt"argument {argNames[i]}"
-        else:
-          fmt"stack position {i}"
+  for pst in args:
+    if self.stack[i] != pst.typ:
+      raise newNpsError(fmt"Expected type {pst.typ} for argument {pst.name} at stack position {i + 1}, but found type {self.stack[i].kind} instead")
 
-      raise newNpsError(fmt"Expected type {pst} for {itemName}, but found type {self.stack[i].kind} instead")
-
-    i -= 1
+    dec i
 
 func symbols*(self: State): seq[string] =
   for key in self.dicts[^1].keys:

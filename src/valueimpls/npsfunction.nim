@@ -3,7 +3,7 @@ type
   NpsNativeProc* = proc(s: State, r: Runner)
 
   Function* = ref object of NpsValue
-    args: seq[NpsType]
+    args: FuncArgs
     case isNative: bool
     of true:
       native: NpsNativeProc
@@ -11,16 +11,16 @@ type
       nodes: seq[Node]
 
 
-proc newNpsFunction*(args: seq[NpsType], native: NpsNativeProc): Function =
+proc newNpsFunction*(args: FuncArgs, native: NpsNativeProc): Function =
   Function(kind: tFunction, args: args.reversed(), isNative: true, native: native)
 
-proc newNpsFunction*(args: seq[NpsType], nodes: seq[Node]): Function =
+proc newNpsFunction*(args: FuncArgs, nodes: seq[Node]): Function =
   Function(kind: tFunction, args: args.reversed(), isNative: false, nodes: nodes)
 
 proc newNpsFunction*(nodes: seq[Node]): Function =
   newNpsFunction(@[], nodes)
 
-proc newNpsFunction*(args: seq[NpsType], file, text: string): Function =
+proc newNpsFunction*(args: FuncArgs, file, text: string): Function =
   var
     lexer = newLexer(file, text)
     parser = newParser(lexer.lex())
@@ -30,7 +30,7 @@ proc newNpsFunction*(args: seq[NpsType], file, text: string): Function =
 method copy*(self: Function): NpsValue =
   self
 
-func getArgs*(self: Function): seq[NpsType] =
+func getArgs*(self: Function): FuncArgs =
   self.args
 
 proc run*(self: Function, s: State, r: Runner) =

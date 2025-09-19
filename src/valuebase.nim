@@ -16,6 +16,8 @@ type
     tDict,
     tFunction
 
+  FuncArgs* = seq[tuple[name: string, typ: NpsType]]
+
   NpsValue* = ref object of RootObj
     kind*: NpsType = tBase
     doc*: string = ""
@@ -43,6 +45,11 @@ func `$`*(self: NpsType): string =
     "Dict"
   of tFunction:
     "Function"
+
+
+func newFuncArgs*(size: Natural): FuncArgs =
+  newSeq[tuple[name: string, typ: NpsType]]()
+
 
 proc unsOp*(a: NpsValue, op: string, b: NpsValue) {.noReturn.} =
   raise newNpsError(fmt"Unsupported types for operation '{op}': {a.kind} and {b.kind}")

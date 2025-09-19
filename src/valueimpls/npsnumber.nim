@@ -8,55 +8,38 @@ func newNpsNumber*(value: float): Number =
 method copy*(self: Number): NpsValue =
   self
 
-method `+`*(self: Number, b: NpsValue): NpsValue =
+template opimpl(name: string, op: untyped) =
   case b.kind
   of tNumber:
-    newNpsNumber(self.value + Number(b).value)
+    result = newNpsNumber(op(self.value, Number(b).value))
   else:
-    procCall `+`(self, b)
+    unsOp(self, name, b)
+
+method `+`*(self: Number, b: NpsValue): NpsValue =
+  opimpl("add", `+`)
 
 method `-`*(self: Number, b: NpsValue): NpsValue =
-  case b.kind
-  of tNumber:
-    newNpsNumber(self.value - Number(b).value)
-  else:
-    procCall `-`(self, b)
+  opimpl("sub", `-`)
 
 method `*`*(self: Number, b: NpsValue): NpsValue =
-  case b.kind
-  of tNumber:
-    newNpsNumber(self.value * Number(b).value)
-  else:
-    procCall `*`(self, b)
+  opimpl("mul", `*`)
 
 method `/`*(self: Number, b: NpsValue): NpsValue =
-  case b.kind
-  of tNumber:
-    newNpsNumber(self.value / Number(b).value)
-  else:
-    procCall `/`(self, b)
+  opimpl("div", `/`)
 
 method `//`*(self: Number, b: NpsValue): NpsValue =
   case b.kind
   of tNumber:
     let f = self.value / Number(b).value
-    newNpsNumber(float(int(f)))
+    result = newNpsNumber(float(int(f)))
   else:
-    procCall `//`(self, b)
+    unsOp(self, "idiv", b)
 
 method `%`*(self: Number, b: NpsValue): NpsValue =
-  case b.kind
-  of tNumber:
-    newNpsNumber(self.value mod Number(b).value)
-  else:
-    procCall `%`(self, b)
+  opimpl("mod", `mod`)
 
 method `^`*(self: Number, b: NpsValue): NpsValue =
-  case b.kind
-  of tNumber:
-    newNpsNumber(self.value ^ Number(b).value)
-  else:
-    procCall `^`(self, b)
+  opimpl("exp", `^`)
 
 method `==`*(self: Number, b: NpsValue): bool =
   case b.kind
@@ -68,16 +51,16 @@ method `==`*(self: Number, b: NpsValue): bool =
 method `>`*(self: Number, b: NpsValue): bool =
   case b.kind
   of tNumber:
-    self.value > Number(b).value
+    result = self.value > Number(b).value
   else:
-    procCall `>`(self, b)
+    unsOp(self, "gt", b)
 
 method `<`*(self: Number, b: NpsValue): bool =
   case b.kind
   of tNumber:
-    self.value < Number(b).value
+    result = self.value < Number(b).value
   else:
-    procCall `<`(self, b)
+    unsOp(self, "lt", b)
 
 method format*(self: Number): string =
   result = $self.value

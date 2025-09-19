@@ -20,7 +20,8 @@ import
   logging,
   builtinlibs/[
     common,
-    libstrings
+    libstrings,
+    libhttp
   ]
 
 const langVersion* = staticRead("../npscript.nimble")
@@ -44,20 +45,28 @@ let builtins* = newDict(0)
 template addV(name, doc: static string, item: NpsValue) =
   addV(builtins, name, doc, item)
 
-template addF(name: static string, args: openArray[NpsType], body: untyped) =
+template addF(name: static string, args: FuncArgs, body: untyped) =
   addF(builtins, name, "", args, body)
 
-template addS(name, doc: static string, args: openArray[NpsType], body: string) =
+template addS(name, doc: static string, args: FuncArgs, body: string) =
   addS(builtins, "builtins.nps", name, doc, args, body)
 
 
 template addMathOp(name: string, op: untyped) =
-  addF(name, @[tAny, tAny]):
+  addF(name, @[("X", tAny), ("Y", tAny)]):
     let
       b = s.pop()
       a = s.pop()
     
     s.push(op(a, b))
+
+template addBoolOp(name: string, op: untyped) =
+  addF("eq", @[("X", tAny), ("Y", tAny)]):
+    let
+      b = s.pop()
+      a = s.pop()
+    
+    s.push(newNpsBool(op(a, b)))
 
 
 func `$`[T: CatchableError](e: ref T): string =
@@ -70,7 +79,8 @@ let defaultSearchPaths = [
 ]
 
 let internalPackageRegistry = newTable[string, (Dict, string)]([
-  ("strings", (libstrings.lib, "'strings'\nFunctions related to string handling and processing."))
+  ("strings", (libstrings.lib, "'strings'\nFunctions related to string handling and processing.")),
+  ("http", (libhttp.lib, "'http'\nFunctions for creating HTTP requests."))
 ])
 
 proc importFile*(s: State, path: string): NpsValue =
@@ -132,12 +142,13 @@ Returns the current version of the language as a string.
   newNpsString(langVersion)
 
 const
-  rawHelpMessage = staticRead("data/helpmsg.txt").strip()
-  rawHelpMessageExtended = staticRead("data/helpmsgext.txt").strip()
+  helpMessage = staticRead("data/helpmsg.txt")
+    .strip()
+    .colorize()
 
-let
-  helpMessage = rawHelpMessage.colorize()
-  helpMessageExtended = rawHelpMessageExtended.colorize()
+  helpMessageExtended = staticRead("data/helpmsgext.txt")
+    .strip()
+    .colorize()
 
 # ->
 # Prints a help message to assist people with writing the language.
@@ -152,7 +163,7 @@ addF("exthelp", @[]):
 # X -> doc of X
 # Returns the docstring attached to a value X.
 # The returned docstring may be empty.
-addF("huhs?", @[tAny]):
+addF("huhs?", @[("X", tAny)]):
   let val = s.pop()
   
   s.push(newNpsString(val.doc))
@@ -163,7 +174,7 @@ addS("huhl?",
 S -> doc of X in S
 Returns the docstring attached to the value bound to a symbol S.
 The returned docstring may be empty.
-""", @[tSymbol]):
+""", @[("S", tSymbol)]):
   "load huhs?"
 
 addS("huhp?",
@@ -172,7 +183,7 @@ addS("huhp?",
 X ->
 Prints the docstring of a value X.
 The returned docstring may be empty.
-""", @[tAny]):
+""", @[("X", tAny)]):
   "huhs? ="
 
 addS("huh?",
@@ -181,12 +192,12 @@ addS("huh?",
 S ->
 Prints the docstring attached to the value bound to a symbol S.
 The returned docstring may be empty.
-""", @[tSymbol]):
+""", @[("S", tSymbol)]):
   "huhl? ="
 
 # X -> typeof X
 # Returns a symbol that describes the type of a value X.
-addF("type", @[tAny]):
+addF("type", @[("X", tAny)]):
   let tstr = $s.pop().kind
 
   s.push(newNpsSymbol(tstr))
@@ -205,7 +216,7 @@ addF("type", @[tAny]):
 # If P can't be found in any of those paths, an error will be thrown.
 #
 # Back-slashes aren't allowed in P, but on DOS-like systems (e.g. Windows), forward-slashes will be replaced with back-slashes.
-addF("import", @[tString]):
+addF("import", @[("P", tString)]):
   let
     path = String(s.pop()).value
     val = importFile(s, path)
@@ -214,7 +225,7 @@ addF("import", @[tString]):
 
 # P -> D
 # Like 'import', but it automatically creates a symbol in the current dictionary with the name '~' + the base path of P with the extension removed.
-addF("importdef", @[tString]):
+addF("importdef", @[("P", tString)]):
   let
     path = String(s.pop()).value
     val = importFile(s, path)
@@ -231,7 +242,7 @@ Completely stops the program.
 
 # E ->
 # Completely stops the program with an exit code E.
-addF("quitn", @[tNumber]):
+addF("quitn", @[("E", tNumber)]):
   let code = Number(s.pop()).whole("E")
 
   raise NpsQuitError(code: code)
@@ -243,20 +254,24 @@ addF("exit", @[]):
 
 # F ->
 # Takes a function F and executes it.
-addF("exec", @[tFunction]):
-  Function(s.pop()).run(s, r)
+addF("exec", @[("F", tFunction)]):
+  let f = Function(s.pop())
+
+  s.check(f.getArgs)
+    
+  f.run(s, r)
 
 # Stack operators
 
 # X ->
 # Discards a value X.
-addF("pop", @[tAny]):
+addF("pop", @[("X", tAny)]):
   discard s.pop()
 
-# X -> X X'
+# X -> X X
 # Duplicates a value X.
 # This is not a deep copy.
-addF("dup", @[tAny]):
+addF("dup", @[("X", tAny)]):
   let val = s.pop()
   s.push(val)
   s.push(val.copy())
@@ -265,20 +280,20 @@ addS("exch",
 """
 X Y -> Y X
 Exchanges the positions of values X and Y.
-""", @[tAny, tAny]):
+""", @[("X", tAny), ("Y", tAny)]):
   "2 1 roll"
 
 # ... C R -> ...
 # Rotates the top C items on the stack up by R times.
-addF("roll", @[tNumber, tNumber]):
+addF("roll", @[("C", tNumber), ("R", tNumber)]):
   let
     roll = Number(s.pop()).whole("R")
     count = Number(s.pop()).whole("C")
 
-  var expe = newSeq[NpsType](count)
+  var expe = newFuncArgs(count)
 
   for i in 0..<expe.len():
-    expe[i] = tAny
+    expe[i] = ("I" & $(i + 1), tAny)
 
   s.check(expe)
 
@@ -298,19 +313,19 @@ addF("roll", @[tNumber, tNumber]):
 # Arithmetic operators
 
 # X Y -> X + Y
-# Adds X and Y together.
+# Computes the sum of X and Y.
 addMathOp("add", `+`)
 
 # X Y -> X - Y
-# Substracts X from Y.
+# Computes the difference of X and Y.
 addMathOp("sub", `-`)
 
 # X Y -> X * Y
-# Multiplies X with Y.
+# Computes the product of X and Y.
 addMathOp("mul", `*`)
 
 # X Y -> X / Y
-# Divides X with Y.
+# Computes the quotient of X and Y.
 addMathOp("div", `/`)
 
 # X Y -> X // Y
@@ -318,11 +333,11 @@ addMathOp("div", `/`)
 addMathOp("idiv", `//`)
 
 # X Y -> X % Y
-# Gets the modulo X and Y.
+# Computes the modulo of X and Y.
 addMathOp("mod", `%`)
 
 # X Y -> X % Y
-# Computes X to the power of Y.
+# Computes the power of X and Y.
 addMathOp("exp", `^`)
 
 addV("pi", """
@@ -342,19 +357,19 @@ addF("rand", @[]):
 # Takes in a value X and prints it in its formatted form.
 # This function will print any value as a literal, e.g. '(hello)' becomes hello, '/dog' becomes dog,
 # and will not print lists in full.
-addF("=", @[tAny]):
+addF("=", @[("X", tAny)]):
   echo s.pop()
 
 # X ->
 # Takes in a value X and prints it in its debug form.
 # This function will print any value as it was in code form except functions,
 # and will print lists in full.
-addF("==", @[tAny]):
+addF("==", @[("X", tAny)]):
   echo s.pop().debug()
 
 # X ->
 # Takes in a value X and prints it in its formatted form without a newline.
-addF("print", @[tAny]):
+addF("print", @[("X", tAny)]):
   stdout.write $s.pop()
   stdout.flushFile()
 
@@ -362,7 +377,7 @@ addF("print", @[tAny]):
 # Formats a string S and an amount of values akin to the sprintf of C.
 # The only format specifiers are '%f' and '%d',
 # which format a value in its formatted and debug forms, respectively.
-addF("sprintf", @[tString]):
+addF("sprintf", @[("S", tString)]):
   let fmt = String(s.pop()).value
 
   var
@@ -417,9 +432,10 @@ addF("sprintf", @[tString]):
 addS("printf",
 """
 'printf'
+S ->
 Formats with 'sprintf', then prints the result to stdout.
 Shorthand for 'sprintf print'
-""", @[tString]):
+""", @[("S", tString)]):
   "sprintf print"
 
 # ->
@@ -444,7 +460,7 @@ addF("pstack", @[]):
 
 # P -> S
 # Reads a path P and returns the resulting string S.
-addF("readf", @[tString]):
+addF("readf", @[("P", tString)]):
   let path = String(s.pop()).value
   
   var content: string
@@ -458,7 +474,7 @@ addF("readf", @[tString]):
 
 # S P ->
 # Writes a string S to a path P.
-addF("writef", @[tString, tString]):
+addF("writef", @[("S", tString), ("P", tString)]):
   let
     path = String(s.pop()).value
     content = String(s.pop()).value
@@ -468,65 +484,36 @@ addF("writef", @[tString, tString]):
   except IOError as e:
     raise newNpsError(fmt"Could not write to '{path}':" & "\n" & $e)
 
+
 # Conditional operators
 
 # X Y -> X == Y
 # Tests the equality of X and Y.
-addF("eq", @[tAny, tAny]):
-  let
-    b = s.pop()
-    a = s.pop()
-  
-  s.push(newNpsBool(a == b))
+addBoolOp("eq", `==`)
 
 # X Y -> X != Y
 # Tests the inequality of X and Y.
-addF("ne", @[tAny, tAny]):
-  let
-    b = s.pop()
-    a = s.pop()
-  
-  s.push(newNpsBool(a != b))
+addBoolOp("ne", `!=`)
 
 # X Y -> X > Y
 # Compares X and Y.
-addF("gt", @[tAny, tAny]):
-  let
-    b = s.pop()
-    a = s.pop()
-  
-  s.push(newNpsBool(a > b))
+addBoolOp("gt", `>`)
 
-# X Y -> X > Y
+# X Y -> X >= Y
 # Compares X and Y.
-addF("ge", @[tAny, tAny]):
-  let
-    b = s.pop()
-    a = s.pop()
-  
-  s.push(newNpsBool(a >= b))
+addBoolOp("gt", `>=`)
 
-# X Y -> X > Y
+# X Y -> X < Y
 # Compares X and Y.
-addF("lt", @[tAny, tAny]):
-  let
-    b = s.pop()
-    a = s.pop()
-  
-  s.push(newNpsBool(a < b))
+addBoolOp("lt", `<`)
 
-# X Y -> X > Y
+# X Y -> X <= Y
 # Compares X and Y.
-addF("le", @[tAny, tAny]):
-  let
-    b = s.pop()
-    a = s.pop()
-  
-  s.push(newNpsBool(a <= b))
+addBoolOp("le", `<=`)
 
 # X Y -> X and Y
 # Returns true if bools X and Y are true, otherwise false.
-addF("and", @[tBool, tBool]):
+addF("and", @[("X", tBool), ("Y", tBool)]):
   let
     b = Bool(s.pop()).value
     a = Bool(s.pop()).value
@@ -535,7 +522,7 @@ addF("and", @[tBool, tBool]):
 
 # X Y -> X or Y
 # Returns true if bools X or Y are true, otherwise false.
-addF("or", @[tBool, tBool]):
+addF("or", @[("X", tBool), ("Y", tBool)]):
   let
     b = Bool(s.pop()).value
     a = Bool(s.pop()).value
@@ -544,7 +531,7 @@ addF("or", @[tBool, tBool]):
 
 # B F ->
 # Executes F if B is true.
-addF("if", @[tBool, tFunction]):
+addF("if", @[("B", tBool), ("F", tFunction)]):
   let
     f = Function(s.pop())
     cond = Bool(s.pop()).value
@@ -554,7 +541,7 @@ addF("if", @[tBool, tFunction]):
 
 # B F F' ->
 # Executes F if B is true, otherwise executes F'.
-addF("ifelse", @[tBool, tFunction, tFunction]):
+addF("ifelse", @[("B", tBool), ("F", tFunction), ("F'", tFunction)]):
   let
     fFalse = Function(s.pop())
     fTrue = Function(s.pop())
@@ -569,7 +556,7 @@ addF("ifelse", @[tBool, tFunction, tFunction]):
 
 # F ->
 # Executes F until 'exit' or 'quit' is called.
-addF("loop", @[tFunction]):
+addF("loop", @[("F", tFunction)]):
   let
     f = Function(s.pop())
     prevLoopState = s.isLoop
@@ -587,7 +574,7 @@ addF("loop", @[tFunction]):
 
 # S I E F ->
 # Steps from S to E while executing F, incrementing by I each iteration.
-addF("for", @[tNumber, tNumber, tNumber, tFunction]):
+addF("for", @[("S", tNumber), ("I", tNumber), ("E", tNumber), ("F", tFunction)]):
   let
     f = Function(s.pop())
     lend = Number(s.pop()).whole("E")
@@ -614,7 +601,7 @@ addF("for", @[tNumber, tNumber, tNumber, tFunction]):
 
 # L F ->
 # Iterates over L, putting each item on the stack then executing F.
-addF("forall", @[tList, tFunction]):
+addF("forall", @[("L", tList), ("F", tFunction)]):
   let
     f = Function(s.pop())
     l = List(s.pop())
@@ -638,14 +625,14 @@ addF("forall", @[tList, tFunction]):
 
 # S -> L
 # Creates a list D with a specified size S.
-addF("array", @[tNumber]):
+addF("array", @[("S", tNumber)]):
   let length = Number(s.pop()).whole("S")
 
   s.push(newNpsList(length))
 
 # L I -> L[I]
 # Gets the value at an index I of a list L.
-addF("get", @[tList, tNumber]):
+addF("get", @[("L", tList), ("I", tNumber)]):
   let
     ind = Number(s.pop()).whole("I")
     arr = List(s.pop())
@@ -654,7 +641,7 @@ addF("get", @[tList, tNumber]):
 
 # L I X -> L[I] = X
 # Sets an index I of a list L to a value X.
-addF("put", @[tList, tNumber, tAny]):
+addF("put", @[("L", tList), ("I", tNumber), ("X", tAny)]):
   let
     val = s.pop()
     ind = Number(s.pop()).whole("I")
@@ -662,11 +649,12 @@ addF("put", @[tList, tNumber, tAny]):
 
   arr[ind] = val
 
+
 # Dict operators
 
 # S X ->
 # Binds X to the symbol S inside the current dictionary.
-addF("def", @[tSymbol, tAny]):
+addF("def", @[("S", tSymbol), ("X", tAny)]):
   let
     val = s.pop()
     sym = Symbol(s.pop()).value
@@ -675,14 +663,14 @@ addF("def", @[tSymbol, tAny]):
 
 # S -> X
 # Pushes the value bound to the symbol S onto the stack.
-addF("load", @[tSymbol]):
+addF("load", @[("S", tSymbol)]):
   let name = Symbol(s.pop()).value
 
   s.push(s.get(name))
 
 # S -> D
 # Creates a dictionary D with an initial size S.
-addF("dict", @[tNumber]):
+addF("dict", @[("S", tNumber)]):
   logger.logdv("'dict' was called")
   logger.logdv("The stack is currently: " & $s.stack())
 
@@ -698,7 +686,7 @@ addF("dict", @[tNumber]):
 
 # D ->
 # Opens a dictionary D for usage.
-addF("begin", @[tDict]):
+addF("begin", @[("D", tDict)]):
   let d = Dictionary(s.pop())
 
   s.dbegin(d.value)
@@ -711,7 +699,7 @@ addF("end", @[]):
 # D S ->
 # Adds a symbol S from a dictionary D into the current dictionary.
 # If S already exists in it current dictionary, it will be overwritten.
-addF("from", @[tDict, tSymbol]):
+addF("from", @[("D", tDict), ("S", tSymbol)]):
   let
     name = Symbol(s.pop()).value
     d = Dictionary(s.pop()).value
@@ -724,7 +712,7 @@ addF("from", @[tDict, tSymbol]):
 # D ->
 # Adds the symbols from a dictionary D into the current dictionary.
 # Already existing symbols will be overwritten.
-addF("allfrom", @[tDict]):
+addF("allfrom", @[("D", tDict)]):
   let d = Dictionary(s.pop()).value
   
   for k, v in d.pairs:
@@ -737,7 +725,7 @@ addS("scoped",
 D F ->
 Takes a dictionary D, opens D, executes F, then closes D.
 Acts as shorthand for 'begin ... end'.
-""", @[tDict, tFunction]):
+""", @[("D", tDict), ("F", tFunction)]):
   "exch begin exec end"
 
 addS(".",
@@ -745,7 +733,7 @@ addS(".",
 '.' (dot)
 D S -> V
 Gets a symbol S from a dict D, analogous to D.S; if the bound value is a function, then it'll be executed.
-""", @[tDict, tSymbol]):
+""", @[("D", tDict), ("S", tSymbol)]):
   """
 exch
 begin
@@ -788,9 +776,9 @@ addV("false", """
 Produces the boolean false value."""):
   falseSingleton
 
-# V -> len(V)
-# Gets the length of a value V
-addF("length", @[tAny]):
+# X -> len of X
+# Gets the length of a value X
+addF("length", @[("X", tAny)]):
   let length = s.pop().len()
 
   s.push(newNpsNumber(float32(length)))
@@ -798,11 +786,10 @@ addF("length", @[tAny]):
 # S -> N
 # "String To Number"
 # Converts a string S into a number N.
-addF("stn", @[tString]):
+addF("stn", @[("S", tString)]):
   let str = String(s.pop()).value
 
   var n: float
-
   try:
     n = parseFloat(str)
   except ValueError:
@@ -814,7 +801,8 @@ addF("stn", @[tString]):
 # "String To Symbol"
 # Converts a string S into a symbol S'.
 # An error is thrown if S could not normally be represented by a symbol.
-addF("sts", @[tString]):
+# This may be inefficient for long strings.
+addF("sts", @[("S", tString)]):
   let str = String(s.pop()).value
 
   for c in str:

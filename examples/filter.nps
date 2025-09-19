@@ -1,0 +1,15 @@
+/filter {
+0 dict begin
+  /f exch def
+  /l exch def
+
+  [l {dup f {} {pop} ifelse} forall]
+end
+} def
+
+[1 1 50 {} for]
+dup ==
+
+{2 mod 0 eq} filter
+
+==

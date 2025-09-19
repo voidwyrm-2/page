@@ -16,13 +16,13 @@ template addV*(dict: Dict, name, docstr: static string, item: NpsValue) =
     dict[name] = val
 
 
-template addF*(dict: Dict, name, docstr: static string, args: openArray[NpsType], body: untyped) =
+template addF*(dict: Dict, name, docstr: static string, args: FuncArgs, body: untyped) =
   addV(dict, name, docstr):
     newNpsFunction(args, proc(s {.inject.}: State, r {.inject.}: Runner) =
       body
     )
 
-template addS*(dict: Dict, file, name, docstr: static string, args: openArray[NpsType], body: string) =
+template addS*(dict: Dict, file, name, docstr: static string, args: FuncArgs, body: string) =
   addV(dict, name, docstr):
     newNpsFunction(args, file, body)
 

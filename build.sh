@@ -55,6 +55,7 @@ compmacos() {
     
     nim c \
         -d:release \
+        -d:ssl \
         --cc:clang \
         --clang.exe:"clang" \
         --clang.linkerexe:"clang" \
@@ -95,6 +96,7 @@ zcomp() {
     
     nim c \
         -d:release \
+        -d:ssl \
         --cc:clang \
         --clang.exe:"zigcc" \
         --clang.linkerexe:"zigcc" \
@@ -149,11 +151,14 @@ elif [ "$1" = "host" ]; then
     rm -rf "$BINDIR/host/"
     nim c \
     -d:release \
+    -d:ssl \
     --forceBuild:on \
     -o:"$BINDIR/host/npscript" \
     src/npscript.nim
 elif [ "$1" = "" ]; then
     nim c \
+    -d:debug \
+    -d:ssl \
     -o:"$BINDIR/npscript" \
     src/npscript.nim
 elif [ "$1" = "help" ]; then

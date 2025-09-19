@@ -1,27 +1,31 @@
-import
-  std/tables,
-  std/strutils
+import std/[
+  tables,
+  strutils
+]
 
 import
   ../values,
   ../state,
   common
 
+
 let lib* = newDict(0)
 
-template addV(name: string, item: NpsValue, doc = "") =
+template addV(name, doc: string, item: NpsValue) =
   addV(lib, name, doc, item)
 
-template addF(name: string, args: openArray[NpsType], body: untyped, doc = "") =
+template addF(name, doc: string, args: FuncArgs, body: untyped) =
   addF(lib, name, doc, args, body)
 
-template addS(name: string, args: openArray[NpsType], body: string, doc = "") =
+template addS(name, doc: string, args: FuncArgs, body: string) =
   addS(lib, "strings.nps", name, doc, args, body)
 
 
-# S -> L
-# Separates a string S into a list L of character strings.
-addF("chars", @[tString]):
+addF("chars", """
+'chars'
+S -> L
+Separates a string S into a list L of character strings.
+""", @[("S", tString)]):
   let str = String(s.pop()).value()
 
   var chars: seq[NpsValue]
@@ -31,9 +35,11 @@ addF("chars", @[tString]):
 
   s.push(newNpsList(chars))
 
-# S D -> L
-# Separates a string S into a list L of parts by a delimiter D.
-addF("split", @[tString, tString]):
+addF("split", """
+'split'
+S D -> L
+Separates a string S into a list L of parts by a delimiter D.
+""", @[("S", tString), ("D", tString)]):
   let
     delim = String(s.pop()).value()
     str = String(s.pop()).value()
@@ -45,9 +51,11 @@ addF("split", @[tString, tString]):
 
   s.push(newNpsList(parts))
 
-# L D -> S
-# Combines a list of strings L into a single string S, separated by delimiter D.
-addF("joins", @[tList, tString]):
+addF("joins", """
+'joins'
+L D -> S
+Combines a list of strings L into a single string S, separated by delimiter D.
+""", @[("L", tList), ("D", tString)]):
   let
     delim = String(s.pop()).value()
     l = List(s.pop()).value()
@@ -62,4 +70,6 @@ addF("joins", @[tList, tString]):
 
   s.push(newNpsString(strs.join(delim)))
 
-addS("join", @[tList], "() joins")
+addS("join", """
+L -> S
+""", @[("L", tList)], "() joins")
