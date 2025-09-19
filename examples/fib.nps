@@ -23,10 +23,10 @@
     } loop % loops in PostScript don't have their own stack
   ]
 end
-% Scoped is a non-standard function added by my implementation
-% It's short-hand for 'begin ... end',
-% which opens a dictionary for usage;
-% creating a new scope, in effect
+% Dictionaries act as scopes in PostScript,
+% 'begin' pushes a dictionary onto the dictionary stack,
+% 'end' pops one off,
+% the dictionary at the top of the stack is prioritized for symbol searching.
 } def
 
 10 fib ==

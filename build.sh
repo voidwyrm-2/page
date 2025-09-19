@@ -1,4 +1,5 @@
 BINDIR="out"
+DISTDIR="dist"
 
 tryq() {
     if [ $? -ne 0 ]; then
@@ -49,7 +50,7 @@ compwasi() {
 }
 
 compmacos() {
-    targetpair="macosx-arm64"
+    targetpair="aarch64-macos"
     outpath="$BINDIR/$targetpair"
     result="$outpath/npscript"
     
@@ -72,7 +73,7 @@ compmacos() {
     zip -r "$targetpair" "$targetpair"
     tryq
 
-    mv "$targetpair.zip" "$BINDIR/"
+    mv "$targetpair.zip" "$DISTDIR/"
     tryq
 
     rm -rf "$targetpair"
@@ -115,7 +116,7 @@ zcomp() {
     zip -r "$llvmTriple" "$llvmTriple"
     tryq
 
-    mv "$llvmTriple.zip" "$BINDIR/"
+    mv "$llvmTriple.zip" "$DISTDIR/"
     tryq
 
     rm -rf "$llvmTriple"
@@ -128,8 +129,16 @@ if [ ! -d "$BINDIR/" ]; then
     mkdir "$BINDIR/"
 fi
 
+if [ ! -d "$DISTDIR/" ]; then
+    mkdir "$DISTDIR/"
+fi
 
-if [ "$1" = "native" ]; then
+
+if [ "$1" = "setup" ]; then
+    nimble install https://github.com/jangko/nim-noise
+    nimble install https://github.com/voidwyrm-2/nargparse
+    nimble install https://github.com/nitely/nim-regex
+elif [ "$1" = "native" ]; then
     rm -rf "$BINDIR/*"
     zcomp "linux" "amd64" "x86_64-linux-gnu"
     zcomp "linux" "i386" "x86-linux-gnu"
@@ -164,7 +173,10 @@ elif [ "$1" = "" ]; then
 elif [ "$1" = "help" ]; then
     echo "Usage:"
     echo "./build.sh help"
-    echo "- Shows a list of subcommands\n"
+    echo "- Shows a list of subcommands.\n"
+
+    echo "./build.sh setup"
+    echo "- Installs the required dependancies.\n"
 
     echo "./build.sh native"
     echo "- Builds for all non-MacOS and non-WASM targets.\n"

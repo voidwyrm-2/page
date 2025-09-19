@@ -5,4 +5,5 @@ npscript
 commsg.txt
 build/
 out/
+dist/
 nimbledeps/

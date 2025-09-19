@@ -14,12 +14,10 @@ from lexer import
 
 from builtins import nil
 
-export
-  values
+export values
 
 
-type
-  Interpreter* = ref object
+type Interpreter* = ref object
     state: State
 
 

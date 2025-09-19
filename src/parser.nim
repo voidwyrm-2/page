@@ -3,6 +3,10 @@ import std/strformat
 import lexer
 
 
+func `++`(n: var int) =
+  n += 1
+
+
 type
   NodeType* = enum
     nWord,
@@ -25,9 +29,6 @@ type
     idx: int
 
 
-func `++`(n: var int) =
-  n += 1
-
 proc `$`*(self: Node): string =
   result = "(" & $(type(self)) & ": "
 
@@ -38,6 +39,7 @@ proc `$`*(self: Node): string =
     result &= $self.nodes
 
   result &= ")"
+
 
 func newParser*(toks: seq[Token]): Parser =
   Parser(toks: toks)

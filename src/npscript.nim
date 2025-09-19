@@ -10,7 +10,6 @@ when not defined(wasm32):
 import pkg/nargparse
 
 import
-  argparse,
   general,
   npsenv,
   lexer,

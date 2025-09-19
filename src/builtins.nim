@@ -800,13 +800,8 @@ addF("stn", @[("S", tString)]):
 # S -> S'
 # "String To Symbol"
 # Converts a string S into a symbol S'.
-# An error is thrown if S could not normally be represented by a symbol.
-# This may be inefficient for long strings.
+# The allowed characters are unrestricted.
 addF("sts", @[("S", tString)]):
   let str = String(s.pop()).value
-
-  for c in str:
-    if not c.isWordChar():
-      raise newNpsError(fmt"'{str}' cannot be represented by a symbol")
 
   s.push(newNpsSymbol(str))

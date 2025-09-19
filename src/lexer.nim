@@ -8,6 +8,10 @@ import general
 export general
 
 
+func `&&=`(a: var bool, b: bool) =
+  a = a and b
+
+
 type
   TokenType* = enum
     ttNone,
@@ -32,7 +36,7 @@ type
     eof: bool
 
 
-func charToTokenType(ch: char, tt: var TokenType): bool =
+func toTokenType(ch: char, tt: var TokenType): bool =
   case ch
   of '[':
     tt = ttBracketOpen
@@ -80,6 +84,7 @@ func dbgLit*(self: Token): string =
 func `$`*(self: Token): string =
   "{" & fmt"{self.kind} `{self.lit}` {self.col} {self.ln} '{self.file}'" & "}"
 
+
 func next(self: Lexer) # Nim, you're a modern (ish) compiled language, how is this an issue
 
 func newLexer*(file, text: string): Lexer =
@@ -111,9 +116,6 @@ func next(self: Lexer) =
 
 #func peek(self: Lexer): Option[char] =
 # if self.idx + 1 < self.text.len(): some(self.text[self.idx + 1]) else: options.none[char]()
-
-func `&&=`(a: var bool, b: bool) =
-  a = a and b
 
 const nonWordChars = {'%', '/', '(', ')', '[', ']', '{', '}'}
 
@@ -223,7 +225,7 @@ proc lex*(self: Lexer): seq[Token] =
         self.next()
     elif ch == '(':
       result.add(self.collectString())
-    elif charToTokenType(ch, tt):
+    elif ch.toTokenType(tt):
       result.add(initToken(tt, self.file, $ch, self.col, self.ln))
       self.next()
     elif ch == '/':
