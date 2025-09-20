@@ -114,7 +114,7 @@ if changelogs.len() == 0:
 try:
   releaseFile.writeFile("Changelog" & (if changelogs.len() == 1: "" else: "s") & ":\n" & changelogs.join("\n"))
 
-  let relCmd = fmt"gh release create -t 'NPScript {version}' -F {releaseFile} {version} out/*.zip"
+  let relCmd = fmt"gh release create -t 'NPScript {version}' -F {releaseFile} {version} dist/*.zip"
   echo runCmd(relCmd)
 finally:
   discard releaseFile.tryRemoveFile()
