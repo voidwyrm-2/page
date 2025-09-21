@@ -24,18 +24,18 @@ import
     libhttp
   ]
 
-const langVersion* = staticRead("../npscript.nimble")
-  .split("\n")
-  .filterIt(it.startsWith("version"))[0]
-  .split("=")[^1]
-  .strip()[1..^2]
-
 when defined(release):
   const buildMode = "release"
 elif defined(danger):
   const buildMode = "danger"
 else:
   const buildMode = "debug"
+
+const langVersion* = staticRead("../npscript.nimble")
+  .split("\n")
+  .filterIt(it.startsWith("version"))[0]
+  .split("=")[^1]
+  .strip()[1..^2] & (if buildMode != "release": "+" & buildMode else: "")
 
 static:
   echo "Compiling NPScript ", langVersion, " on ", nimscript.buildOS, "/", nimscript.buildCPU, " for ", hostOS, "/", hostCPU, " in ", buildMode, " mode"
@@ -61,7 +61,7 @@ template addMathOp(name: string, op: untyped) =
     s.push(op(a, b))
 
 template addBoolOp(name: string, op: untyped) =
-  addF("eq", @[("X", tAny), ("Y", tAny)]):
+  addF(name, @[("X", tAny), ("Y", tAny)]):
     let
       b = s.pop()
       a = s.pop()
@@ -75,7 +75,8 @@ func `$`[T: CatchableError](e: ref T): string =
 
 let defaultSearchPaths = [
   npsStd,
-  npsPkg
+  ".pkg",
+  npsPkg,
 ]
 
 let internalPackageRegistry = newTable[string, (Dict, string)]([
@@ -163,19 +164,28 @@ addF("exthelp", @[]):
 # X -> doc of X
 # Returns the docstring attached to a value X.
 # The returned docstring may be empty.
-addF("huhs?", @[("X", tAny)]):
+addF("docof", @[("X", tAny)]):
   let val = s.pop()
   
   s.push(newNpsString(val.doc))
 
+# X S -> X'
+# Sets the docstring of a value X to a string S.
+addF("setdoc", @[("X", tAny), ("S", tString)]):
+  let
+    str = String(s.pop()).value
+    val = s.peek(^1)
+
+  val.doc = str
+
 addS("huhl?",
 """
 'huhl?'
-S -> doc of X in S
+S -> doc of X from S
 Returns the docstring attached to the value bound to a symbol S.
 The returned docstring may be empty.
 """, @[("S", tSymbol)]):
-  "load huhs?"
+  "load docof"
 
 addS("huhp?",
 """
@@ -184,7 +194,7 @@ X ->
 Prints the docstring of a value X.
 The returned docstring may be empty.
 """, @[("X", tAny)]):
-  "huhs? ="
+  "docof ="
 
 addS("huh?",
 """
@@ -211,6 +221,7 @@ addF("type", @[("X", tAny)]):
 # If P doesn't end with the .nps extension, P will be searched for in these directories in descending order.
 # - The internal package registry, which is what holds libraries like 'strings'
 # - ~/.npscript/std/ (or %USERPROFILE%\.npscript\std\ on Windows)
+# - ./.pkg/
 # - ~/.npscript/pkg/ (or %USERPROFILE%\.npscript\pkg\ on Windows)
 #
 # If P can't be found in any of those paths, an error will be thrown.

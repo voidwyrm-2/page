@@ -54,17 +54,17 @@ func toTokenType(ch: char, tt: var TokenType): bool =
 func initToken*(kind: TokenType, file, lit: string, col, ln: int): Token =
   Token(ty: kind, file: file, lit: lit, col: col, ln: ln)
 
-func kind*(self: Token): TokenType =
-  self.ty
+func kind*(tok: Token): TokenType =
+  tok.ty
 
-func lit*(self: Token): string =
-  self.lit
+func lit*(tok: Token): string =
+  tok.lit
 
-func line*(self: Token): int =
-  self.ln
+func line*(tok: Token): int =
+  tok.ln
 
-func trace*(self: Token): string =
-  fmt"{self.file}:{self.ln}:{self.col}"
+func trace*(tok: Token): string =
+  fmt"{tok.file}:{tok.ln}:{tok.col}"
 
 func `==`*(a: Token, b: TokenType): bool =
   a.kind == b
@@ -72,17 +72,17 @@ func `==`*(a: Token, b: TokenType): bool =
 func `==`*(a: Token, b: string): bool =
   a.lit == b
 
-func dbgLit*(self: Token): string =
-  case self.kind
+func dbgLit*(tok: Token): string =
+  case tok.kind
   of ttString:
-    "(" & self.lit & ")"
+    "(" & tok.lit & ")"
   of ttSymbol:
-    "/" & self.lit
+    "/" & tok.lit
   else:
-    self.lit
+    tok.lit
 
-func `$`*(self: Token): string =
-  "{" & fmt"{self.kind} `{self.lit}` {self.col} {self.ln} '{self.file}'" & "}"
+func `$`*(tok: Token): string =
+  "{" & fmt"{tok.kind} `{tok.lit}` {tok.col} {tok.ln} '{tok.file}'" & "}"
 
 
 func next(self: Lexer) # Nim, you're a modern (ish) compiled language, how is this an issue

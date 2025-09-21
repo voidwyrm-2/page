@@ -30,7 +30,7 @@ func newDict*(pairs: openArray[(string, NpsValue)]): Dict =
 
 func copy*(dict: Dict): Dict =
   ## Shallowly copies a Dict
-  result = newDict(dict.len())
+  result = newDict(dict.len)
 
   for (k, v) in dict.pairs:
     result[k] = v
@@ -60,7 +60,7 @@ func dbegin*(self: State, size: int) =
   self.dbegin(newDict(size))
 
 func dend*(self: State): Dict =
-  if self.dicts.len() <= self.dictMin:
+  if self.dicts.len <= self.dictMin:
     raise newNpsError("Dict stack underflow")
   
   self.dicts.pop()
@@ -86,10 +86,19 @@ proc push*(self: State, val: NpsValue) =
   self.stack.add(val)
 
 func pop*(self: State): NpsValue =
-  if self.stack.len() == 0:
+  if self.stack.len == 0:
     raise newNpsError("stack underflow")
 
   self.stack.pop()
+
+func peek(self: State, ind: int): NpsValue =
+  if ind < 0 or self.stack.len - 1 < ind:
+    raise newNpsError("stack underflow")
+
+  self.stack[ind]
+
+func peek*(self: State, ind: BackwardsIndex): NpsValue =
+  self.peek(self.stack.len - int(ind))
 
 proc check*(self: State, args: FuncArgs) =
   if self.stack.len < args.len:

@@ -4,7 +4,8 @@ import std/[
   algorithm,
   math,
   tables,
-  strformat
+  strformat,
+  sequtils
 ]
 
 import

@@ -1,4 +1,8 @@
-import std/strformat
+import std/[
+  strformat,
+  sequtils,
+  strutils
+]
 
 import lexer
 
@@ -28,15 +32,23 @@ type
     toks: seq[Token]
     idx: int
 
+proc dbgLit*(node: Node): string =
+  case node.typ
+    of nWord, nSymbol, nString, nNumber:
+      node.tok.dbgLit
+    of nList:
+      "[" & node.nodes.mapIt(it.dbgLit).join(" ") & "]"
+    of nFunc:
+      "{" & node.nodes.mapIt(it.dbgLit).join(" ") & "}"
 
-proc `$`*(self: Node): string =
-  result = "(" & $(type(self)) & ": "
+proc `$`*(node: Node): string =
+  result = "(" & $(type(node)) & ": "
 
-  case self.typ
+  case node.typ
   of nWord, nSymbol, nString, nNumber:
-    result &= $self.tok
+    result &= $node.tok
   of nList, nFunc:
-    result &= $self.nodes
+    result &= $node.nodes
 
   result &= ")"
 

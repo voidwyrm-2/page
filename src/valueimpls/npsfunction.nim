@@ -43,4 +43,4 @@ method debug*(self: Function): string =
   if self.isNative:
     "<native function>"
   else:
-    "<composite function>"
+    "{" & self.nodes.mapIt(it.dbgLit).join(" ") & "}"
