@@ -1,6 +1,8 @@
 # NPScript
 
-A PostScript implementation with a focus on console applications.
+A PostScript-derivative stack-based scripting language.
+
+Unlike PostScript, NPScript is intended for general scripting, like Python or Lua.
 
 ## Installation
 
