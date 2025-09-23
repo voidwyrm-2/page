@@ -63,14 +63,20 @@ proc exec(self: Interpreter, n: Node) =
     logger.logdv("Found word with value '" & n.tok.lit & "'")
     let v = self.state.get(n.tok.lit)
 
-    if v.kind == tProcedure:
+    if v.typ == tProcedure:
       logger.logdv("Word is a function")
 
       logger.logdv("Checking function arguments")
       self.state.check(v.args)
 
       logger.logdv("Executing function")
-      v.run(cast[pointer](self.state), proc(nodes: seq[Node]) = self.exec(nodes))
+
+      let runner = proc(nodes: seq[Node]) = self.exec(nodes)
+
+      if v.ptype == ptLiteral:
+        evalValues(self.state, runner, v.values)
+      else:
+        v.run(cast[pointer](self.state), runner)
     else:
       logger.logdv("Word is not a function")
       self.state.push(v)

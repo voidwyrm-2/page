@@ -9,6 +9,10 @@ import std/[
 import pkg/regex
 
 
+func panic*(msg: string) =
+  raise newException(Defect, msg)
+
+
 type
   NpsError* = ref object of CatchableError
     stackTrace: seq[string]
@@ -131,6 +135,11 @@ func getStyleForName(name: string): string =
 
 proc colorize*(str: string): string =
   str.replace(colorFinder, (m, s) => s[m.group(0)].getStyleForName())
+
+
+iterator rev*[T](arr: openArray[T]): T =
+  for i in countdown(arr.len - 1, 0, 1):
+    yield arr[i]
 
 
 macro select*(val, cases: untyped): untyped =

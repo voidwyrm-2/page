@@ -6,7 +6,8 @@ import std/[
   random,
   os,
   sequtils,
-  math
+  math,
+  enumerate
 ]
 
 from system/nimscript import nil
@@ -14,6 +15,7 @@ from system/nimscript import nil
 import
   npsenv,
   lexer,
+  parser,
   builtinlibs/[
     common,
     libstrings,
@@ -27,14 +29,27 @@ elif defined(danger):
 else:
   const buildMode = "debug"
 
-const langVersion* = staticRead("../npscript.nimble")
-  .split("\n")
-  .filterIt(it.startsWith("version"))[0]
-  .split("=")[^1]
-  .strip()[1..^2] & (if buildMode != "release": "+" & buildMode else: "")
+const
+  langVersion* = staticRead("../npscript.nimble")
+    .split("\n")
+    .filterIt(it.startsWith("version"))[0]
+    .split("=")[^1]
+    .strip()[1..^2] & (if buildMode != "release": "+" & buildMode else: "")
+
+  product = "NPScript"
+
+  helpMessage = staticRead("data/helpmsg.txt")
+    .strip()
+    .colorize()
+
+  helpMessageExtended = staticRead("data/helpmsgext.txt")
+    .strip()
+    .colorize()
+
 
 static:
   echo "Compiling NPScript ", langVersion, " on ", nimscript.buildOS, "/", nimscript.buildCPU, " for ", hostOS, "/", hostCPU, " in ", buildMode, " mode"
+
 
 let builtins* = newDict(0)
 
@@ -129,24 +144,47 @@ proc importFile*(s: State, path: string): Value =
   return substate.get("export")
 
 
+proc literalize(s: State, nodes: seq[Node]): seq[Value] =
+  result = newSeq[Value](nodes.len)
+
+  for (i, node) in enumerate(nodes):
+    case node.typ
+    of nSymbol:
+      result[i] = newSymbol(node.tok.lit)
+    of nString:
+      result[i] = newString(node.tok.lit)
+    of nInteger:
+      let num = parseInt(node.tok.lit)
+      result[i] = newInteger(num)
+    of nReal:
+      let num = parseFloat(node.tok.lit)
+      result[i] = newReal(num)
+    of nList:
+      result[i] = newList(literalize(s, node.nodes))
+    of nProc:
+      result[i] = newProcedure(node.nodes)
+    of nWord:
+      result[i] = s.get(node.tok.lit)
+
+
 # Meta operators
 
-addV("langver",
+addV("version",
 """
-'langver'
--> version
+'version'
+-> string
 Returns the current version of the language as a string.
 """):
   newString(langVersion)
 
-const
-  helpMessage = staticRead("data/helpmsg.txt")
-    .strip()
-    .colorize()
-
-  helpMessageExtended = staticRead("data/helpmsgext.txt")
-    .strip()
-    .colorize()
+addV("product",
+"""
+'product'
+-> string
+Returns the product name.
+This is included for compatibility with other PostScript implementations.
+"""):
+  newString(product)
 
 # ->
 # Prints a help message to assist people with writing the language.
@@ -205,7 +243,7 @@ The returned docstring may be empty.
 # X -> typeof X
 # Returns a symbol that describes the type of a value X.
 addF("type", @[("X", tAny)]):
-  let tstr = $s.pop().kind
+  let tstr = $s.pop().typ
 
   s.push(newSymbol(tstr))
 
@@ -260,14 +298,24 @@ addF("quitn", @[("E", tInteger)]):
 addF("exit", @[]):
   raise NpsExitError()
 
+# F -> F
+# Replaces operator names in F with operator values
+addF("bind", @[("F", tProcedure)]):
+  let f = s.pop()
+
+  s.push(newProcedure(f, literalize(s, f.nodes)))
+
 # F ->
 # Takes a function F and executes it.
 addF("exec", @[("F", tProcedure)]):
   let f = s.pop()
 
   s.check(f.args)
-    
-  f.run(sptr, r)
+
+  if f.ptype == ptLiteral:
+    evalValues(s, r, f.values)
+  else:
+    f.run(sptr, r)
 
 # Stack operators
 
@@ -347,7 +395,8 @@ addMathOp("mod", `%`)
 # Computes the power of X and Y.
 addMathOp("exp", `^`)
 
-addV("pi", """
+addV("pi",
+"""
 -> pi
 Returns the value of Pi.
 """):
@@ -639,20 +688,26 @@ addF("array", @[("S", tInteger)]):
 
 # L I -> L[I]
 # Gets the value at an index I of a list L.
+# Negative indexes will index from the back of the list
 addF("get", @[("L", tList), ("I", tInteger)]):
   let
-    ind = s.pop().intv
+    i = s.pop().intv
     arr = s.pop()
+
+  let ind = if i < 0: arr.len - -i else: i
 
   s.push(arr[ind])
 
 # L I X -> L[I] = X
 # Sets an index I of a list L to a value X.
+# Negative indexes will index from the back of the list
 addF("put", @[("L", tList), ("I", tInteger), ("X", tAny)]):
   let
     val = s.pop()
-    ind = s.pop().intv
+    i = s.pop().intv
     arr = s.pop()
+
+  let ind = if i < 0: arr.len - -i else: i
 
   arr[ind] = val
 
@@ -694,6 +749,11 @@ addF("begin", @[("D", tDict)]):
 addF("end", @[]):
   discard s.dend()
 
+# ->
+# Returns the last opened dictionary.
+addF("this", @[]):
+  s.push(newDictionary(s.dicts[^1]))
+
 # D S ->
 # Adds a symbol S from a dictionary D into the current dictionary.
 # If S already exists in it current dictionary, it will be overwritten.
@@ -715,7 +775,6 @@ addF("allfrom", @[("D", tDict)]):
   
   for k, v in d.pairs:
     s.set(k, v)
-
 
 addS("scoped",
 """
@@ -742,12 +801,62 @@ begin
   if
 end"""
 
-# ->
-# Shows the symbols inside the last opened dictionary.
+# -> L
+# Returns a list of the symbols inside the last opened dictionary.
 addF("symbols", @[]):
-  for symbol in s.symbols():
-    echo symbol
+  let symbols = s.symbols
+  var l = newSeq[Value](symbols.len)
 
+  for (i, symbol) in enumerate(symbols):
+    l[i] = newSymbol(symbol)
+
+  s.push(newList(l))
+
+# -> L
+# Returns a list of lists of the symbols in each dictionary.
+addF("rsymbols", @[]):
+  let dicts = s.dicts
+  var l = newSeq[Value](dicts.len)
+
+  for (i, dict) in enumerate(dicts):
+    var
+      subl = newSeq[Value](dict.len)
+      j = 0
+
+    for symbol in dict.keys:
+      subl[j] = newSymbol(symbol)
+      inc j
+
+    l[i] = newList(subl)
+
+  s.push(newList(l))
+
+addS("psymbols",
+"""
+'psymbols'
+->
+Shows the symbols inside the last opened dictionary.
+""", @[]):
+  "symbols {=} forall"
+
+addS("prsymbols",
+"""
+'prsymbols'
+->
+# Shows the symbols in each dictionary.
+""", @[]):
+  """
+1 rsymbols 
+{
+  exch dup
+  (%f:\n) printf
+  exch
+
+  {( ) printf =}
+  forall
+  1 add
+} forall
+pop"""
 
 # Misc operators
 
@@ -756,22 +865,28 @@ let
   falseSingleton = newBool(false)
   nullSingleton = newNull()
 
-addV("null", """
+addV("null",
+"""
 'null'
 -> null
-Produces the value of null."""):
+Produces the value of null.
+"""):
   nullSingleton
 
-addV("true", """
+addV("true",
+"""
 'true'
 -> true
-Produces the boolean true value."""):
+Produces the boolean true value.
+"""):
   trueSingleton
 
-addV("false", """
+addV("false",
+"""
 'false'
 -> false
-Produces the boolean false value."""):
+Produces the boolean false value.
+"""):
   falseSingleton
 
 # X -> len of X

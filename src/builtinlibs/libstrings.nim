@@ -72,7 +72,7 @@ Combines a list of strings L into a single string S, separated by delimiter D.
   var strs = newSeqOfCap[string](l.len)
 
   for v in l:
-    if v.kind != tString:
+    if v.typ != tString:
       raise newNpsError("List argument for 'joins' must be only strings")
     
     strs.add(v.strv)

@@ -56,7 +56,7 @@ proc writeStdlib*(force: bool) =
       logger.log fmt"Could not write '{item.path}' to {npsStd}:"
       logger.log " " & e.msg
 
-  echo ""
+  logger.log ""
 
 
 type

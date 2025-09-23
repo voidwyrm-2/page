@@ -29,7 +29,7 @@ type
     toks: seq[Token]
     idx: int
 
-proc dbgLit*(node: Node): string =
+func dbgLit*(node: Node): string =
   case node.typ
     of nWord, nSymbol, nString, nInteger, nReal:
       node.tok.dbgLit

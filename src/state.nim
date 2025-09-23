@@ -6,7 +6,8 @@ import std/[
 
 import
   general,
-  value
+  value,
+  logging
 
 export
   general,
@@ -62,7 +63,7 @@ func dbegin*(self: State, size: int) =
 func dend*(self: State): Dict =
   if self.dicts.len <= self.dictMin:
     raise newNpsError("Dict stack underflow")
-  
+
   self.dicts.pop()
 
 func has*(self: State, name: string): bool =
@@ -76,7 +77,7 @@ func set*(self: State, name: string, val: Value) =
   self.dicts[^1][name] = val
 
 func get*(self: State, name: string): Value =
-  for d in self.dicts:
+  for d in self.dicts.rev:
     if d.hasKey(name):
       return d[name]
 
@@ -91,7 +92,7 @@ func pop*(self: State): Value =
 
   self.stack.pop()
 
-func peek(self: State, ind: int): Value =
+func peek*(self: State, ind: int): Value =
   if ind < 0 or self.stack.len - 1 < ind:
     raise newNpsError("stack underflow")
 
@@ -108,11 +109,13 @@ proc check*(self: State, args: ProcArgs) =
 
   for pst in args:
     if self.stack[i] isnot pst.typ:
-      raise newNpsError(fmt"Expected type {pst.typ} for argument {pst.name} at stack position {i + 1}, but found type {self.stack[i].kind} instead")
+      raise newNpsError(fmt"Expected type {pst.typ} for argument {pst.name} at stack position {i + 1}, but found type {self.stack[i].typ} instead")
 
     dec i
 
 func symbols*(self: State): seq[string] =
+  result = newSeqOfCap[string](self.dicts[^1].len)
+
   for key in self.dicts[^1].keys:
     result.add(key)
 
@@ -126,3 +129,21 @@ proc `$`*(self: State): string =
     items.add($item)
 
   items.join("\n")
+
+
+proc evalValues*(s: State, r: Runner, values: seq[Value]) =
+  for value in values:
+    case value.typ
+    of tProcedure:
+      if value.ptype == ptLiteral:
+        evalValues(s, r, value.values)
+      else:
+        value.run(cast[pointer](s), r)
+    of tList:
+      let subs = newState(1)
+      
+      evalValues(subs, r, value.listv)
+
+      s.push(newList(subs.stack))
+    else:
+      s.push(value)

@@ -1,19 +1,18 @@
 import std/[
-  sugar,
   strutils,
   algorithm,
   math,
   tables,
   strformat,
   sequtils,
-  macros
+  macros,
+  enumerate
 ]
 
 import
   general,
   lexer,
-  parser,
-  logging
+  parser
 
 export general
 
@@ -36,9 +35,14 @@ type
 
   Dict* = TableRef[string, Value]
 
+  ProcType* = enum
+    ptNative,
+    ptComposite,
+    ptLiteral
+
   Value* = ref object
     doc*: string
-    case kind: Type
+    case typ: Type
     of tNull:
       discard
     of tBool:
@@ -54,12 +58,14 @@ type
     of tDict:
       dictVal: Dict
     of tProcedure:
-      args: ProcArgs
-      case isNative: bool
-      of true:
+      args*: ProcArgs
+      case ptype: ProcType
+      of ptNative:
         native: NativeProc
-      of false:
+      of ptComposite:
         nodes: seq[Node]
+      of ptLiteral:
+        values: seq[Value]
 
 
 const tAny* = Type(255)
@@ -70,6 +76,37 @@ func `or`*(a, b: Type): Type =
 
 func `and`*(a, b: Type): Type =
   Type(uint8(a) and uint8(b))
+
+func `is`*(a: Value, b: Type): bool =
+  (a.typ and b) != tNull or (a.typ == tNull and b == tNull)
+
+func `isnot`*(a: Value, b: Type): bool =
+  not (a is b)
+
+func toType*(str: string): Type =
+  case str
+  of "Null":
+    tNull
+  of "Bool":
+    tBool
+  of "Symbol":
+    tSymbol
+  of "String":
+    tString
+  of "Integer":
+    tInteger
+  of "Real":
+    tReal
+  of "List":
+    tList
+  of "Dict":
+    tDict
+  of "Procedure":
+    tProcedure
+  of "Any":
+    tAny
+  else:
+    raise newNpsError(fmt"Invalid type '{str}'")
 
 func `$`*(self: Type): string =
   case self
@@ -88,16 +125,19 @@ func `$`*(self: Type): string =
   of tList:
     "List"
   of tDict:
-    "Dictionary"
+    "Dict"
   of tProcedure:
     "Procedure"
-  else:
+  else: # To account for type unions
     let n = uint8(self)
     case n
     of 255:
       "Any"
     else:
-      raise newException(ValueError, fmt"Type value '{n}' is not formatable")
+      ""
+
+
+const tNumber* = tInteger or tReal
 
 
 func newProcArgs*(size: Natural): ProcArgs =
@@ -105,28 +145,28 @@ func newProcArgs*(size: Natural): ProcArgs =
 
 
 func newNull*(): Value =
-  Value(kind: tNull)
+  Value(typ: tNull)
 
 func newBool*(value: bool): Value =
-  Value(kind: tBool, boolVal: value)
+  Value(typ: tBool, boolVal: value)
 
 func newSymbol*(value: string): Value =
-  Value(kind: tSymbol, strVal: value)
+  Value(typ: tSymbol, strVal: value)
 
 func newString*(value: string): Value =
-  Value(kind: tString, strVal: value)
+  Value(typ: tString, strVal: value)
 
 func newInteger*(value: int): Value =
-  Value(kind: tInteger, intVal: value)
+  Value(typ: tInteger, intVal: value)
 
 func newReal*(value: float): Value =
-  Value(kind: tReal, realVal: value)
+  Value(typ: tReal, realVal: value)
 
 func newList*(values: seq[Value]): Value =
-  Value(kind: tList, listVal: values)
+  Value(typ: tList, listVal: values)
 
 func newList*(values: varargs[Value]): Value =
-  Value(kind: tList, listVal: values.toSeq)
+  Value(typ: tList, listVal: values.toSeq)
 
 func newList*(len: Natural): Value =
   var items = newSeq[Value](len)
@@ -136,13 +176,13 @@ func newList*(len: Natural): Value =
     items[i] = newNull()
 
 func newDictionary*(value: Dict): Value =
-  Value(kind: tDict, dictVal: value)
+  Value(typ: tDict, dictVal: value)
 
 proc newProcedure*(args: ProcArgs, native: NativeProc): Value =
-  Value(kind: tProcedure, args: args.reversed(), isNative: true, native: native)
+  Value(typ: tProcedure, args: args.reversed(), ptype: ptNative, native: native)
 
 proc newProcedure*(args: ProcArgs, nodes: seq[Node]): Value =
-  Value(kind: tProcedure, args: args.reversed(), isNative: false, nodes: nodes)
+  Value(typ: tProcedure, args: args.reversed(), ptype: ptComposite, nodes: nodes)
 
 proc newProcedure*(nodes: seq[Node]): Value =
   newProcedure(@[], nodes)
@@ -154,16 +194,12 @@ proc newProcedure*(args: ProcArgs, file, text: string): Value =
 
   newProcedure(args, parser.parse())
 
-
-func `is`*(a: Value, b: Type): bool =
-  (a.kind and b) != tNull or (a.kind == tNull and b == tNull)
-
-func `isnot`*(a: Value, b: Type): bool =
-  not (a is b)
+proc newProcedure*(original: Value, values: seq[Value]): Value =
+  Value(typ: tProcedure, args: original.args, ptype: ptLiteral, values: values)
 
 
-func kind*(self: Value): Type =
-  self.kind
+func typ*(self: Value): Type =
+  self.typ
 
 func boolv*(self: Value): bool =
   self.boolVal
@@ -183,34 +219,48 @@ func listv*(self: Value): seq[Value] =
 func dictv*(self: Value): Dict =
   self.dictVal
 
-func checkInd(self: Value, ind: Natural) =
+func nodes*(self: Value): seq[Node] =
+  self.nodes
+
+func values*(self: Value): seq[Value] =
+  self.values
+
+
+func checklen(self: Value, ind: Natural) =
   if self.listVal.len < ind:
     raise newNpsError(fmt"Index '{ind}' not in range for the list of length {self.listVal.len}")
+  elif ind < 0:
+    raise newNpsError(fmt"List indexes cannot be negative")
 
 func `[]`*(self: Value, ind: int): Value =
-  self.checkInd(ind)
+  self.checklen(ind)
   self.listVal[ind]
 
 func `[]=`*(self: Value, ind: int, val: Value) =
-  self.checkInd(ind)
+  self.checklen(ind)
   self.listVal[ind] = val
 
 
-func args*(self: Value): ProcArgs =
-  self.args
+proc ptype*(self: Value): ProcType =
+  self.ptype
 
 proc run*(self: Value, s: pointer, r: Runner) =
-  if self.isNative:
+  if self.ptype == ptNative:
     self.native(s, r)
-  elif self.nodes.len > 0:
-    r(self.nodes)
+  elif self.ptype == ptComposite:
+    if self.nodes.len > 0:
+      r(self.nodes)
+  elif self.ptype == ptLiteral:
+    panic(fmt"Literal procedures cannot be executed via 'run'")
+  else:
+    panic("Unreachable with '" & $self.ptype & "', literal of " & $uint8(self.ptype))
 
 
 proc unsOp*(a: Value, op: string, b: Value) {.noReturn.} =
-  raise newNpsError(fmt"Unsupported types for operation '{op}': {a.kind} and {b.kind}")
+  raise newNpsError(fmt"Unsupported types for operation '{op}': {a.typ} and {b.typ}")
 
 template valueNumOp(name: string, op: untyped): untyped =
-  select (self.kind, other.kind):
+  select (self.typ, other.typ):
     maybe (tInteger, tInteger):
       return newInteger(op(self.intVal, other.intVal))
     maybe (tReal, tReal):
@@ -237,7 +287,7 @@ proc `/`*(self: Value, other: Value): Value =
   valueNumOp("div", `/`)
 
 proc `//`*(self: Value, other: Value): Value =
-  select (self.kind, other.kind):
+  select (self.typ, other.typ):
     maybe (tInteger, tInteger):
       return newInteger(int(self.intVal div other.intVal))
     maybe (tReal, tReal):
@@ -256,7 +306,7 @@ proc `^`*(self: Value, other: Value): Value =
   valueNumOp("exp", `^`)
 
 func `==`*(self: Value, other: Value): bool =
-  select (self.kind, other.kind):
+  select (self.typ, other.typ):
     maybe (tNull, tNull):
       return true
     maybe (tBool, tBool):
@@ -280,7 +330,7 @@ func `!=`*(self: Value, other: Value): bool =
   not (self == other)
 
 proc `>`*(self: Value, other: Value): bool =
-  select (self.kind, other.kind):
+  select (self.typ, other.typ):
     maybe (tInteger, tInteger):
       return self.intVal > other.intVal
     maybe (tReal, tReal):
@@ -296,7 +346,7 @@ proc `>=`*(self: Value, other: Value): bool =
   self > other or self == other
 
 proc `<`*(self: Value, other: Value): bool =
-  select (self.kind, other.kind):
+  select (self.typ, other.typ):
     maybe (tInteger, tInteger):
       return self.intVal < other.intVal
     maybe (tReal, tReal):
@@ -312,7 +362,7 @@ proc `<=`*(self: Value, other: Value): bool =
   self < other or self == other
 
 func len*(self: Value): int =
-  case self.kind
+  case self.typ
   of tString:
     self.strVal.len
   of tList:
@@ -320,10 +370,10 @@ func len*(self: Value): int =
   of tDict:
     self.dictVal.len
   else:
-    raise newNpsError(fmt"operator 'length' cannot be used on {self.kind}")
+    raise newNpsError(fmt"operator 'length' cannot be used on {self.typ}")
 
 func format*(self: Value): string =
-  case self.kind
+  case self.typ
   of tNull:
     "null"
   of tBool:
@@ -340,7 +390,7 @@ func format*(self: Value): string =
     "--nostringval--"
 
 func debug*(self: Value): string =
-  case self.kind
+  case self.typ
   of tSymbol:
     "/" & self.strVal
   of tString:
@@ -350,10 +400,13 @@ func debug*(self: Value): string =
   of tDict:
     "-dict-"
   of tProcedure:
-    if self.isNative:
+    case self.ptype:
+    of ptNative:
       "<native function>"
-    else:
+    of ptComposite:
       "{" & self.nodes.mapIt(it.dbgLit).join(" ") & "}"
+    of ptLiteral:
+      "{" & self.values.mapIt(it.debug()).join(" ") & "}"
   else:
     self.format()
 

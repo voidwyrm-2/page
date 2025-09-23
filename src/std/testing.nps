@@ -1,48 +1,46 @@
-/scope {0 dict begin} def
-
 /export 0 dict def
 
-/state 0 dict def
+export begin
 
-state begin
+/_scope {dict begin} def
+
+/_state 0 dict def
+
+_state begin
   /title () def
   /tests [] def
   /addTest {
-    scope
+  1 _scope
     /t exch def
     [tests {} forall t]
-    end
+  end
 
     /tests exch def
   } def
 end
 
-export begin
-
 /settitle {
-  state {/title exch def} scoped
+  _state {/title exch def} scoped
 } def
 
 /expect {
-  scope
+2 _scope
   /val exch def
   /test exch def
   [val /test load]
-  state begin
-    addTest
-  end
-  end
+  _state /addTest .
+end
 } def
 
 /runall {
-  scope
-  /gettitle {state {title} scoped} def
+4 _scope
+  /title {_state /title .} def
 
   /count 1 def
 
-  gettitle (BEGIN TEST '%f'\n) printf
+  title (BEGIN TEST '%f'\n) printf
 
-  state {tests} scoped
+  _state /tests .
   {
     {} forall
     exch
@@ -62,7 +60,7 @@ export begin
     /count count 1 add def
   } forall
 
-  gettitle (END TEST '%f'\n) printf
+  title (END TEST '%f'\n) printf
   
-  end
+end
 } def
