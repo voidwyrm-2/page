@@ -6,26 +6,26 @@ import std/[
 
 import
   general,
-  valuebase
+  value
 
-export general
+export
+  general,
+  value
 
 
 type
-  Dict* = TableRef[string, NpsValue]
-
   State* = ref object
     dictMin: int
     dicts: seq[Dict]
-    stack: seq[NpsValue]
+    stack: seq[Value]
     isLoop*: bool
     codeEval*: proc(file, text: string): State
 
 
 func newDict*(size: int): Dict =
-  newTable[string, NpsValue](size)
+  newTable[string, Value](size)
 
-func newDict*(pairs: openArray[(string, NpsValue)]): Dict =
+func newDict*(pairs: openArray[(string, Value)]): Dict =
   newTable(pairs)
 
 func copy*(dict: Dict): Dict =
@@ -50,7 +50,7 @@ func newState*(dictMin: int, dicts: varargs[Dict]): State =
 func dicts*(self: State): seq[Dict] =
   self.dicts
 
-func stack*(self: State): seq[NpsValue] =
+func stack*(self: State): seq[Value] =
   self.stack
 
 func dbegin*(self: State, dict: Dict) =
@@ -72,42 +72,42 @@ func has*(self: State, name: string): bool =
     if d.hasKey(name):
       return true
 
-func set*(self: State, name: string, val: NpsValue) =
+func set*(self: State, name: string, val: Value) =
   self.dicts[^1][name] = val
 
-func get*(self: State, name: string): NpsValue =
+func get*(self: State, name: string): Value =
   for d in self.dicts:
     if d.hasKey(name):
       return d[name]
 
   raise newNpsError(fmt"Undefined symbol '{name}'")
 
-proc push*(self: State, val: NpsValue) =
+proc push*(self: State, val: Value) =
   self.stack.add(val)
 
-func pop*(self: State): NpsValue =
+func pop*(self: State): Value =
   if self.stack.len == 0:
     raise newNpsError("stack underflow")
 
   self.stack.pop()
 
-func peek(self: State, ind: int): NpsValue =
+func peek(self: State, ind: int): Value =
   if ind < 0 or self.stack.len - 1 < ind:
     raise newNpsError("stack underflow")
 
   self.stack[ind]
 
-func peek*(self: State, ind: BackwardsIndex): NpsValue =
+func peek*(self: State, ind: BackwardsIndex): Value =
   self.peek(self.stack.len - int(ind))
 
-proc check*(self: State, args: FuncArgs) =
+proc check*(self: State, args: ProcArgs) =
   if self.stack.len < args.len:
     raise newNpsError(fmt"Expected {args.len} items on the stack but found {self.stack.len} items instead")
 
   var i = self.stack.len - 1
 
   for pst in args:
-    if self.stack[i] != pst.typ:
+    if self.stack[i] isnot pst.typ:
       raise newNpsError(fmt"Expected type {pst.typ} for argument {pst.name} at stack position {i + 1}, but found type {self.stack[i].kind} instead")
 
     dec i
@@ -116,7 +116,7 @@ func symbols*(self: State): seq[string] =
   for key in self.dicts[^1].keys:
     result.add(key)
 
-proc `[]=`*(self: State, key: int, val: sink NpsValue) =
+proc `[]=`*(self: State, key: int, val: sink Value) =
   self.stack[key] = val
 
 proc `$`*(self: State): string =

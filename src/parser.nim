@@ -7,24 +7,21 @@ import std/[
 import lexer
 
 
-func `++`(n: var int) =
-  n += 1
-
-
 type
   NodeType* = enum
     nWord,
     nSymbol,
     nString,
-    nNumber,
+    nInteger,
+    nReal,
     nList,
-    nFunc
+    nProc
 
   Node* = object
     case typ*: NodeType
-    of nWord, nSymbol, nString, nNumber:
+    of nWord, nSymbol, nString, nInteger, nReal:
       tok*: Token
-    of nList, nFunc:
+    of nList, nProc:
       anchor*: Token
       nodes*: seq[Node]
 
@@ -34,20 +31,20 @@ type
 
 proc dbgLit*(node: Node): string =
   case node.typ
-    of nWord, nSymbol, nString, nNumber:
+    of nWord, nSymbol, nString, nInteger, nReal:
       node.tok.dbgLit
     of nList:
       "[" & node.nodes.mapIt(it.dbgLit).join(" ") & "]"
-    of nFunc:
+    of nProc:
       "{" & node.nodes.mapIt(it.dbgLit).join(" ") & "}"
 
 proc `$`*(node: Node): string =
   result = "(" & $(type(node)) & ": "
 
   case node.typ
-  of nWord, nSymbol, nString, nNumber:
+  of nWord, nSymbol, nString, nInteger, nReal:
     result &= $node.tok
-  of nList, nFunc:
+  of nList, nProc:
     result &= $node.nodes
 
   result &= ")"
@@ -63,29 +60,32 @@ func parseInner(self: Parser, endType: TokenType): seq[Node] =
     case tok.kind()
     of ttWord:
       result.add(Node(typ: nWord, tok: tok))
-      ++self.idx
+      inc self.idx
     of ttSymbol:
       result.add(Node(typ: nSymbol, tok: tok))
-      ++self.idx
+      inc self.idx
     of ttString:
       result.add(Node(typ: nString, tok: tok))
-      ++self.idx
-    of ttNumber:
-      result.add(Node(typ: nNumber, tok: tok))
-      ++self.idx
+      inc self.idx
+    of ttInteger:
+      result.add(Node(typ: nInteger, tok: tok))
+      inc self.idx
+    of ttReal:
+      result.add(Node(typ: nReal, tok: tok))
+      inc self.idx
     of ttBracketOpen:
-      ++self.idx
+      inc self.idx
       result.add(Node(typ: nList, anchor: tok, nodes: self.parseInner(ttBracketClose)))
-      ++self.idx
+      inc self.idx
     of ttBraceOpen:
-      ++self.idx
-      result.add(Node(typ: nFunc, anchor: tok, nodes: self.parseInner(ttBraceClose)))
-      ++self.idx
+      inc self.idx
+      result.add(Node(typ: nProc, anchor: tok, nodes: self.parseInner(ttBraceClose)))
+      inc self.idx
     else:
-      if tok.kind() == endType:
+      if tok.kind == endType:
         return
 
-      raise newNpsError(fmt"Unexpected token {tok.kind()} == {endType}? {tok.kind() == endType} '{tok.dbgLit()}'")
+      raise newNpsError(fmt"Unexpected token {tok.kind} == {endType}? {tok.kind == endType} '{tok.dbgLit}'")
 
 func parse*(self: Parser): seq[Node] =
   self.parseInner(ttNone)

@@ -1,23 +1,20 @@
 import std/[
-  tables,
-  strutils
+  strutils,
+  enumerate
 ]
 
-import
-  ../values,
-  ../state,
-  common
+import common
 
 
 let lib* = newDict(0)
 
-template addV(name, doc: string, item: NpsValue) =
+template addV(name, doc: string, item: Value) =
   addV(lib, name, doc, item)
 
-template addF(name, doc: string, args: FuncArgs, body: untyped) =
+template addF(name, doc: string, args: ProcArgs, body: untyped) =
   addF(lib, name, doc, args, body)
 
-template addS(name, doc: string, args: FuncArgs, body: string) =
+template addS(name, doc: string, args: ProcArgs, body: string) =
   addS(lib, "strings.nps", name, doc, args, body)
 
 
@@ -26,14 +23,14 @@ addF("chars", """
 S -> L
 Separates a string S into a list L of character strings.
 """, @[("S", tString)]):
-  let str = String(s.pop()).value
+  let str = s.pop().strv
 
-  var chars: seq[NpsValue]
+  var chars = newSeq[Value](str.len)
 
-  for ch in str:
-    chars.add(newNpsString($ch))
+  for (i, ch) in enumerate(str):
+    chars[i] = newString($ch)
 
-  s.push(newNpsList(chars))
+  s.push(newList(chars))
 
 addF("split", """
 'split'
@@ -41,15 +38,15 @@ S D -> L
 Separates a string S into a list L of parts by a delimiter D.
 """, @[("S", tString), ("D", tString)]):
   let
-    delim = String(s.pop()).value
-    str = String(s.pop()).value
+    delim = s.pop().strv
+    str = s.pop().strv
 
-  var parts: seq[NpsValue]
+  var parts: seq[Value]
 
   for part in str.split(delim):
-    parts.add(newNpsString(part))
+    parts.add(newString(part))
 
-  s.push(newNpsList(parts))
+  s.push(newList(parts))
 
 addF("replace", """
 'replace'
@@ -57,11 +54,11 @@ S Old New -> S'
 Replaces all occurences of Old with New in a string S.
 """, @[("S", tString), ("Old", tString), ("New", tString)]):
   let
-    new = String(s.pop()).value
-    old = String(s.pop()).value
-    str = String(s.pop()).value
+    new = s.pop().strv
+    old = s.pop().strv
+    str = s.pop().strv
 
-  s.push(newNpsString(str.replaceWord(old, new)))
+  s.push(newString(str.replaceWord(old, new)))
 
 addF("joins", """
 'joins'
@@ -69,8 +66,8 @@ L D -> S
 Combines a list of strings L into a single string S, separated by delimiter D.
 """, @[("L", tList), ("D", tString)]):
   let
-    delim = String(s.pop()).value
-    l = List(s.pop()).value
+    delim = s.pop().strv
+    l = s.pop().listv
 
   var strs = newSeqOfCap[string](l.len)
 
@@ -78,9 +75,9 @@ Combines a list of strings L into a single string S, separated by delimiter D.
     if v.kind != tString:
       raise newNpsError("List argument for 'joins' must be only strings")
     
-    strs.add(String(v).value)
+    strs.add(v.strv)
 
-  s.push(newNpsString(strs.join(delim)))
+  s.push(newString(strs.join(delim)))
 
 addS("join", """
 L -> S

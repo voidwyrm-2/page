@@ -2,7 +2,8 @@ import std/[
   strutils,
   strformat,
   sequtils,
-  sugar
+  sugar,
+  macros
 ]
 
 import pkg/regex
@@ -29,6 +30,7 @@ func addTrace*(self: NpsError, trace: string) =
 func `$`*(self: NpsError): string =
   self.msg & "\nStacktrace:\n" & self.stackTrace.join("\n")
 
+
 const
   bgTag = r"(bg\-)?"
   brTag = r"(br\-)?"
@@ -37,6 +39,7 @@ const
   colorFinderSpec = fmt"\(\.({nameSpecifier}|{rgbSpecifier})\)"
   
   colorFinder = re2 colorFinderSpec
+
 
 func getStyleForRGB(r, g, b: uint, background: bool): string =
   if r > 255 or g > 255 or b > 255:
@@ -58,7 +61,6 @@ func getAttributeForName(name: string): string =
 
   "\e[" & $code & "m"
     
-
 func getStyleForName(name: string): string =
   var
     mName = name.strip().toLower()
@@ -129,3 +131,38 @@ func getStyleForName(name: string): string =
 
 proc colorize*(str: string): string =
   str.replace(colorFinder, (m, s) => s[m.group(0)].getStyleForName())
+
+
+macro select*(val, cases: untyped): untyped =
+  let
+    eq = newTree(nnkAccQuoted, ident"==")
+    an = newTree(nnkAccQuoted, ident"and")
+
+  var ifcases = newSeqOfCap[tuple[cond, body: NimNode]](cases.len)
+
+  for (i, n) in cases.pairs:
+    var cond: NimNode
+
+    let arg = n[1]
+
+    if arg.kind != nnkTupleConstr:
+      raise newException(ValueError, fmt"Expected tuple, but found '{arg.toStrLit}' instead")
+
+    if val.len != arg.len and not (arg[^1].kind == nnkAccQuoted and arg[^1].eqIdent("..")):
+      continue
+
+    for (j, it) in arg.pairs:
+      if it.kind == nnkIdent and it.eqIdent("_"):
+        if cond == nil:
+          cond = newLit(true)
+        continue
+      elif it.eqIdent(".."):
+        break
+      elif cond == nil:
+        cond = newCall(eq, val[j], it)
+      else:
+        cond = newCall(an, cond, newCall(eq, val[j], it))
+    
+    ifcases.add((cond, n[2]))
+
+  result = newIfStmt(ifcases)

@@ -4,21 +4,18 @@ import std/[
   strformat
 ]
 
-import
-  ../values,
-  ../state,
-  common
+import common
 
 
 let lib* = newDict(0)
 
-template addV(name, doc: string, item: NpsValue) =
+template addV(name, doc: string, item: Value) =
   addV(lib, name, doc, item)
 
-template addF(name, doc: string, args: FuncArgs, body: untyped) =
+template addF(name, doc: string, args: ProcArgs, body: untyped) =
   addF(lib, name, doc, args, body)
 
-template addS(name, doc: string, args: FuncArgs, body: string) =
+template addS(name, doc: string, args: ProcArgs, body: string) =
   addS(lib, "http.nps", name, doc, args, body)
 
 
@@ -33,10 +30,10 @@ addF("init", """
 'init'
 UA R ->
 Initializes the HTTP client with the useragent UA and maximum redirects R.
-""", @[("UA", tString), ("R", tNumber)]):
+""", @[("UA", tString), ("R", tInteger)]):
   let
-    redirects = Number(s.pop()).whole("R")
-    useragent = String(s.pop()).value
+    redirects = s.pop().intv
+    useragent = s.pop().strv
 
   client = newHttpClient(useragent, redirects)
 
@@ -49,9 +46,9 @@ then returns a response R.
   checkClient()
 
   let
-    typ = Symbol(s.pop()).value
-    body = String(s.pop()).value
-    url = String(s.pop()).value
+    typ = s.pop().strv
+    body = s.pop().strv
+    url = s.pop().strv
 
   var res = ""
 
@@ -69,7 +66,7 @@ then returns a response R.
   else:
     raise newNpsError(fmt"Invalid HTTP request type '{typ}', expected 'HEAD', 'GET', 'POST', 'PUT', or 'DELETE'")
   
-  s.push(newNpsString(res))
+  s.push(newString(res))
 
 addS("get", """
 'get'

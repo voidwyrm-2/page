@@ -2,7 +2,7 @@ import std/strutils
 
 import
   state,
-  values,
+  value,
   parser,
   logging
 
@@ -14,7 +14,7 @@ from lexer import
 
 from builtins import nil
 
-export values
+export value
 
 
 type Interpreter* = ref object
@@ -44,31 +44,33 @@ proc exec*(self: Interpreter, nodes: openArray[Node])
 proc exec(self: Interpreter, n: Node) =
   case n.typ
   of nSymbol:
-    self.state.push(newNpsSymbol(n.tok.lit))
+    self.state.push(newSymbol(n.tok.lit))
   of nString:
-    self.state.push(newNpsString(n.tok.lit))
-  of nNumber:
+    self.state.push(newString(n.tok.lit))
+  of nInteger:
+    let num = parseInt(n.tok.lit)
+    self.state.push(newInteger(num))
+  of nReal:
     let num = parseFloat(n.tok.lit)
-    self.state.push(newNpsNumber(num))
+    self.state.push(newReal(num))
   of nList:
     var i = newInterpreter(self.state.dicts())
     i.exec(n.nodes)
-    self.state.push(newNpsList(i.state().stack()))
-  of nFunc:
-    self.state.push(newNpsFunction(n.nodes))
+    self.state.push(newList(i.state().stack()))
+  of nProc:
+    self.state.push(newProcedure(n.nodes))
   of nWord:
     logger.logdv("Found word with value '" & n.tok.lit & "'")
     let v = self.state.get(n.tok.lit)
 
-    if v.kind == tFunction:
+    if v.kind == tProcedure:
       logger.logdv("Word is a function")
-      let f = Function(v)
 
       logger.logdv("Checking function arguments")
-      self.state.check(f.getArgs())
+      self.state.check(v.args)
 
       logger.logdv("Executing function")
-      f.run(self.state, proc(nodes: seq[Node]) = self.exec(nodes))
+      v.run(cast[pointer](self.state), proc(nodes: seq[Node]) = self.exec(nodes))
     else:
       logger.logdv("Word is not a function")
       self.state.push(v)
@@ -78,27 +80,27 @@ proc exec*(self: Interpreter, nodes: openArray[Node]) =
     try:
       self.exec(n)
     except NpsExitError:
-      logger.logdv("A NpsExitError was caught")
+      logger.logdv("An ExitError was caught")
       if not self.state.isLoop:
-        logger.logdv("But the NpsExitError wasn't thrown inside of a loop")
+        logger.logdv("But the ExitError wasn't thrown inside of a loop")
         let e = newNpsError("'exit' cannot be used outside of a loop")
         
         case n.typ
-        of nWord, nSymbol, nString, nNumber:
+        of nWord, nSymbol, nString, nInteger, nReal:
           e.addTrace(n.tok.trace())
-        of nList, nFunc:
+        of nList, nProc:
           e.addTrace(n.anchor.trace())
         
         raise e
 
       raise NpsExitError()
     except NpsError as e:
-      logger.logdv("A NpsError was caught")
+      logger.logdv("A Error was caught")
 
       case n.typ
-      of nWord, nSymbol, nString, nNumber:
+      of nWord, nSymbol, nString, nInteger, nReal:
         e.addTrace(n.tok.trace())
-      of nList, nFunc:
+      of nList, nProc:
         e.addTrace(n.anchor.trace())
 
       raise e

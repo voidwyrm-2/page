@@ -18,7 +18,8 @@ type
     ttWord,
     ttSymbol,
     ttString,
-    ttNumber,
+    ttInteger,
+    ttReal,
     ttBracketOpen,
     ttBracketClose,
     ttBraceOpen,
@@ -51,8 +52,8 @@ func toTokenType(ch: char, tt: var TokenType): bool =
 
   true
 
-func initToken*(kind: TokenType, file, lit: string, col, ln: int): Token =
-  Token(ty: kind, file: file, lit: lit, col: col, ln: ln)
+func initToken*(typ: TokenType, file, lit: string, col, ln: int): Token =
+  Token(ty: typ, file: file, lit: lit, col: col, ln: ln)
 
 func kind*(tok: Token): TokenType =
   tok.ty
@@ -126,13 +127,12 @@ func isWordChar*(ch: char): bool =
   result &&= ch notin nonWordChars
 
 func collectString(self: Lexer): Token =
-  let
-    startCol = self.col
-    startLn = self.ln
+  result.ty = ttString
+  result.col = self.col
+  result.ln = self.ln
+  result.file = self.file
 
-  var
-    escaped = false
-    lit = ""
+  var escaped = false
 
   self.next()
 
@@ -142,17 +142,17 @@ func collectString(self: Lexer): Token =
     if escaped:
       case ch
       of '\\', '(', ')':
-        lit &= ch
+        result.lit &= ch
       of 'n':
-        lit &= '\n'
+        result.lit &= '\n'
       of 'r':
-        lit &= '\r'
+        result.lit &= '\r'
       of 't':
-        lit &= '\t'
+        result.lit &= '\t'
       of 'v':
-        lit &= '\v'
+        result.lit &= '\v'
       of 'a':
-        lit &= '\a'
+        result.lit &= '\a'
       else:
         self.error(fmt"Invalid escaped charater '{ch}'")
 
@@ -164,7 +164,7 @@ func collectString(self: Lexer): Token =
     elif ch == ')':
       break
     else:
-      lit &= ch
+      result.lit &= ch
 
     self.next()
 
@@ -173,14 +173,11 @@ func collectString(self: Lexer): Token =
 
   self.next()
 
-  initToken(TokenType.ttString, self.file, lit, startCol, startLn)
-
 func collectWord(self: Lexer, kind: TokenType = ttWord, skip: bool = false): Token =
-  let
-    startCol = self.col
-    startLn = self.ln
-
-  var k = kind
+  result.ty = kind
+  result.col = self.col
+  result.ln = self.ln
+  result.file = self.file
 
   if skip:
     self.next()
@@ -190,32 +187,35 @@ func collectWord(self: Lexer, kind: TokenType = ttWord, skip: bool = false): Tok
   while self.ch.isWordChar():
     self.next()
 
-  let lit = self.text[startIdx .. self.idx - 1]
+  result.lit = self.text[startIdx .. self.idx - 1]
 
   if kind == ttWord:
     try:
-      discard parseFloat(lit)
-
-      case lit.toLower()
-      of "nan", "inf", "-inf":
-        if lit.toLower() != lit:
-          raise newException(ValueError, fmt"Value '{lit}' is an invalid number")
-      of ".":
-        raise newException(ValueError, fmt"Value '{lit}' is an invalid number")
-      else:
-        discard
-
-      k = ttNumber
+      discard parseInt(result.lit)
+      result.ty = ttInteger
+      return
     except ValueError:
       discard
 
-  initToken(k, self.file, lit, startCol, startLn)
+    try:
+      discard parseFloat(result.lit)
+
+      case result.lit.toLower()
+      of "nan", "inf", "-inf":
+        if result.lit.toLower() != result.lit:
+          raise newException(ValueError, fmt"Value '{result.lit}' is an invalid number")
+      of ".":
+        raise newException(ValueError, fmt"Value '{result.lit}' is an invalid number")
+      else:
+        discard
+
+      result.ty = ttReal
+    except ValueError:
+      discard
 
 proc lex*(self: Lexer): seq[Token] =
   while not self.eof:
     let ch = self.ch
-
-    var tt = ttNone
 
     if not self.eof and ch.isSpaceAscii():
       while self.ch.isSpaceAscii():
@@ -225,7 +225,7 @@ proc lex*(self: Lexer): seq[Token] =
         self.next()
     elif ch == '(':
       result.add(self.collectString())
-    elif ch.toTokenType(tt):
+    elif (var tt: TokenType; ch.toTokenType(tt)):
       result.add(initToken(tt, self.file, $ch, self.col, self.ln))
       self.next()
     elif ch == '/':
