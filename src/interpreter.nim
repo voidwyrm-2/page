@@ -85,11 +85,11 @@ proc exec*(self: Interpreter, nodes: openArray[Node]) =
   for n in nodes:
     try:
       self.exec(n)
-    except NpsExitError:
+    except PgExitError:
       logger.logdv("An ExitError was caught")
       if not self.state.isLoop:
         logger.logdv("But the ExitError wasn't thrown inside of a loop")
-        let e = newNpsError("'exit' cannot be used outside of a loop")
+        let e = newPgError("'exit' cannot be used outside of a loop")
         
         case n.typ
         of nWord, nSymbol, nString, nInteger, nReal:
@@ -99,8 +99,8 @@ proc exec*(self: Interpreter, nodes: openArray[Node]) =
         
         raise e
 
-      raise NpsExitError()
-    except NpsError as e:
+      raise PgExitError()
+    except PgError as e:
       logger.logdv("A Error was caught")
 
       case n.typ

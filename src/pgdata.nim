@@ -8,7 +8,7 @@ import std/[
 
 
 const
-  npscriptHeader* = staticRead("data/npscript.h")
+  pageHeader* = staticRead("data/page.h")
 
 proc remotePathHead(path: string): string =
   path.split("/")[1..^1].join("/")
@@ -23,4 +23,4 @@ proc readFilesWithEnding(folder: string, fileEnding: string): seq[tuple[path, da
   result = getFilesWithEnding(folder, fileEnding).mapIt((it.remotePathHead(), staticRead(it)))
 
 const
-  stdFiles* = readFilesWithEnding("src/std", "nps")
+  stdFiles* = readFilesWithEnding("src/std", "pg")

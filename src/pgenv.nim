@@ -5,7 +5,7 @@ import std/[
 ]
 
 import
-  npsdata,
+  pgdata,
   logging
 
 
@@ -13,28 +13,28 @@ randomize()
 
 
 let
-  npsFolder* = getHomeDir() / ".npscript"
-  npsInclude* = npsFolder / "include"
-  npsStd* = npsFolder / "std"
-  npsPkg* = npsFolder / "pkg"
-  npsCache* = npsFolder / "cache"
-  npsReplHistory* = npsFolder / "repl_history"
+  pgFolder* = getHomeDir() / ".page"
+  pgInclude* = pgFolder / "include"
+  pgStd* = pgFolder / "std"
+  pgPkg* = pgFolder / "pkg"
+  pgCache* = pgFolder / "cache"
+  pgReplHistory* = pgFolder / "repl_history"
 
-proc verifyNps*() =
-  discard npsFolder.existsOrCreateDir()
-  discard npsPkg.existsOrCreateDir()
-  discard npsCache.existsOrCreateDir()
+proc verifypg*() =
+  discard pgFolder.existsOrCreateDir()
+  discard pgPkg.existsOrCreateDir()
+  discard pgCache.existsOrCreateDir()
 
 proc writeFfiHeader*() =
-  let exists = npsInclude.existsOrCreateDir()
+  let exists = pgInclude.existsOrCreateDir()
   if exists:
     return
   
-  writeFile(npsInclude / "npscript.h", npscriptHeader)
+  writeFile(pgInclude / "page.h", pageHeader)
 
 
 proc writeStdlib*(force: bool) =
-  let exists = npsStd.existsOrCreateDir()
+  let exists = pgStd.existsOrCreateDir()
   if exists and not force:
     return
 
@@ -43,17 +43,17 @@ proc writeStdlib*(force: bool) =
   else:
     logger.log "Writing stdlib for the first time..."
 
-  logger.log "Writing to " & npsStd
+  logger.log "Writing to " & pgStd
 
   for item in stdFiles:
     logger.log fmt"Writing '{item.path}'..."
 
     try:
-      let path = (npsStd / item.path)
+      let path = (pgStd / item.path)
       path.writeFile(item.data)
       logger.log "Written to " & path
     except IOError as e:
-      logger.log fmt"Could not write '{item.path}' to {npsStd}:"
+      logger.log fmt"Could not write '{item.path}' to {pgStd}:"
       logger.log " " & e.msg
 
   logger.log ""
@@ -71,7 +71,7 @@ proc newCache*(): Cache =
   result.r = initRand()
 
 proc open*(self: Cache, path: string, mode: FileMode): File =
-  if not open(result, npsCache / path):
+  if not open(result, pgCache / path):
     raise newException(CacheError, fmt"Could not open '{path}'")
 
 proc openTemp*(self: Cache, mode: FileMode = fmWrite): File =

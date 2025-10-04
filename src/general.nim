@@ -14,24 +14,24 @@ func panic*(msg: string) =
 
 
 type
-  NpsError* = ref object of CatchableError
+  PgError* = ref object of CatchableError
     stackTrace: seq[string]
 
-  NpsMetaError* = ref object of CatchableError
+  PgMetaError* = ref object of CatchableError
 
-  NpsQuitError* = ref object of NpsMetaError
+  PgQuitError* = ref object of PgMetaError
     code*: int = 0
 
-  NpsExitError* = ref object of NpsMetaError
+  PgExitError* = ref object of PgMetaError
 
 
-func newNpsError*(msg: string): NpsError =
-  NpsError(msg: msg)
+func newPgError*(msg: string): PgError =
+  PgError(msg: msg)
 
-func addTrace*(self: NpsError, trace: string) =
+func addTrace*(self: PgError, trace: string) =
   self.stackTrace.add(trace)
 
-func `$`*(self: NpsError): string =
+func `$`*(self: PgError): string =
   self.msg & "\nStacktrace:\n" & self.stackTrace.join("\n")
 
 

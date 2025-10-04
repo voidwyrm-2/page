@@ -15,7 +15,7 @@ template addF(name, doc: string, args: ProcArgs, body: untyped) =
   addF(lib, name, doc, args, body)
 
 template addS(name, doc: string, args: ProcArgs, body: string) =
-  addS(lib, "strings.nps", name, doc, args, body)
+  addS(lib, "strings.pg", name, doc, args, body)
 
 
 addF("chars", """
@@ -73,7 +73,7 @@ Combines a list of strings L into a single string S, separated by delimiter D.
 
   for v in l:
     if v.typ != tString:
-      raise newNpsError("List argument for 'joins' must be only strings")
+      raise newPgError("List argument for 'joins' must be only strings")
     
     strs.add(v.strv)
 

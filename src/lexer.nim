@@ -97,7 +97,7 @@ func newLexer*(file, text: string): Lexer =
   result.next()
 
 func error(self: Lexer, msg: string) =
-  let e = newNpsError(msg)
+  let e = newPgError(msg)
 
   e.addTrace(fmt"{self.file}:{self.ln}:{self.col}")
 

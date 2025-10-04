@@ -85,7 +85,7 @@ func parseInner(self: Parser, endType: TokenType): seq[Node] =
       if tok.kind == endType:
         return
 
-      raise newNpsError(fmt"Unexpected token {tok.kind} == {endType}? {tok.kind == endType} '{tok.dbgLit}'")
+      raise newPgError(fmt"Unexpected token {tok.kind} == {endType}? {tok.kind == endType} '{tok.dbgLit}'")
 
 func parse*(self: Parser): seq[Node] =
   self.parseInner(ttNone)

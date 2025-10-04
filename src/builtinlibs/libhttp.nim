@@ -16,14 +16,14 @@ template addF(name, doc: string, args: ProcArgs, body: untyped) =
   addF(lib, name, doc, args, body)
 
 template addS(name, doc: string, args: ProcArgs, body: string) =
-  addS(lib, "http.nps", name, doc, args, body)
+  addS(lib, "http.pg", name, doc, args, body)
 
 
 var client: HttpClient
 
 proc checkClient() =
   if client == nil:
-    raise newNpsError("HTTP client has not been initialized")
+    raise newPgError("HTTP client has not been initialized")
 
 
 addF("init", """
@@ -64,7 +64,7 @@ then returns a response R.
   of "DELETE":
     res = client.deleteContent(url)
   else:
-    raise newNpsError(fmt"Invalid HTTP request type '{typ}', expected 'HEAD', 'GET', 'POST', 'PUT', or 'DELETE'")
+    raise newPgError(fmt"Invalid HTTP request type '{typ}', expected 'HEAD', 'GET', 'POST', 'PUT', or 'DELETE'")
   
   s.push(newString(res))
 

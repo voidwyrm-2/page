@@ -1,10 +1,10 @@
-NPScript is an implementation of PostScript,
+Page is a programming language inspired by PostScript,
 a programming language created by Adobe to generate graphics for use in generating PDFs and printing,
 similarly to TeX and LaTeX.
 
 It's still used (albeit rarely) today (as of Sep 11, 2025).
 
-PostScript is a stack-based language,
+PostScript (and Page) are stack-based languages,
 so instead of `1 + 1`, expressions are written as `1 1 +`,
 where `1` is pushed onto the stack, then another `1` is is pushed onto the stack. then `+` pops them off,
 adds them together, and pushes the result (2, in this case)
@@ -97,13 +97,13 @@ PostScript has 8 datatypes.
    (.orange)16 (.magenta)circleArea (.comment)% '201.0619...676'(.reset)
 
 
-If you want to learn what a builtin symbol does, you can use 'huh?' to see its docstring.
-e.g. `(.yellow)/add (.magenta)huh?(.reset)`
+If you want to learn what a builtin symbol does, you can use '(.magenta)doc(.reset)' to see its docstring.
+e.g. `(.yellow)/add (.magenta)doc(.reset)`
 
-If you want to see the docstring (if any) of a value, you can use '(.magenta)huhp?(.reset)'.
-e.g. `(.magenta)langver huhp?(.reset)`
+If you want to see the docstring (if any) of a value, you can use '(.magenta)docof (.cyan)=(.reset)'.
+e.g. `(.magenta)version docof (.cyan)=(.reset)`
 
-You can use `(.magenta)symbols(.reset)` to see a list of symbols in the current dictionary.
+You can use `(.magenta)psymbols(.reset)` to see a list of symbols in the current dictionary.
 
 For more information:
 (.br-blue)https://en.wikipedia.org/wiki/PostScript

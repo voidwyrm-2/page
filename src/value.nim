@@ -106,7 +106,7 @@ func toType*(str: string): Type =
   of "Any":
     tAny
   else:
-    raise newNpsError(fmt"Invalid type '{str}'")
+    raise newPgError(fmt"Invalid type '{str}'")
 
 func `$`*(self: Type): string =
   case self
@@ -170,10 +170,11 @@ func newList*(values: varargs[Value]): Value =
 
 func newList*(len: Natural): Value =
   var items = newSeq[Value](len)
-  result = newList(items)
 
   for i in 0..<len:
     items[i] = newNull()
+  
+  result = newList(items)
 
 func newDictionary*(value: Dict): Value =
   Value(typ: tDict, dictVal: value)
@@ -228,9 +229,9 @@ func values*(self: Value): seq[Value] =
 
 func checklen(self: Value, ind: Natural) =
   if self.listVal.len < ind:
-    raise newNpsError(fmt"Index '{ind}' not in range for the list of length {self.listVal.len}")
+    raise newPgError(fmt"Index '{ind}' not in range for the list of length {self.listVal.len}")
   elif ind < 0:
-    raise newNpsError(fmt"List indexes cannot be negative")
+    raise newPgError(fmt"List indexes cannot be negative")
 
 func `[]`*(self: Value, ind: int): Value =
   self.checklen(ind)
@@ -257,7 +258,7 @@ proc run*(self: Value, s: pointer, r: Runner) =
 
 
 proc unsOp*(a: Value, op: string, b: Value) {.noReturn.} =
-  raise newNpsError(fmt"Unsupported types for operation '{op}': {a.typ} and {b.typ}")
+  raise newPgError(fmt"Unsupported types for operation '{op}': {a.typ} and {b.typ}")
 
 template valueNumOp(name: string, op: untyped): untyped =
   select (self.typ, other.typ):
@@ -370,7 +371,7 @@ func len*(self: Value): int =
   of tDict:
     self.dictVal.len
   else:
-    raise newNpsError(fmt"operator 'length' cannot be used on {self.typ}")
+    raise newPgError(fmt"operator 'length' cannot be used on {self.typ}")
 
 func format*(self: Value): string =
   case self.typ

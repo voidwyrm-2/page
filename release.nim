@@ -13,7 +13,7 @@ import std/[
 
 
 const
-  version* = staticRead("npscript.nimble")
+  version* = staticRead("page.nimble")
     .split("\n")
     .filterIt(it.startsWith("version"))[0]
     .split("=")[^1]
@@ -54,7 +54,7 @@ func `$`(t: tuple[major, minor, patch: uint]): string =
   fmt"{t.major}.{t.minor}.{t.patch}"
 
 let
-  changelogFinder = re"NPScript [0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}"
+  changelogFinder = re"(Page|NPScript) [0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}"
   
   commits = runCmd("git --no-pager log --oneline --all")
     .strip()
@@ -102,7 +102,7 @@ for commit in commits:
   let ver = c[0..n - 1].parseVersion()
 
   if ver > latestRelease:
-    changelogs.add("https://github.com/voidwyrm-2/npscript/commit/" & hash)
+    changelogs.add("https://github.com/voidwyrm-2/page/commit/" & hash)
     echo "Found commit ", ver, " (", hash, ")"
   else:
     break
@@ -114,7 +114,7 @@ if changelogs.len() == 0:
 try:
   releaseFile.writeFile("Changelog" & (if changelogs.len() == 1: "" else: "s") & ":\n" & changelogs.join("\n"))
 
-  let relCmd = fmt"gh release create -t 'NPScript {version}' -F {releaseFile} {version} dist/*.zip"
+  let relCmd = fmt"gh release create -t 'Page {version}' -F {releaseFile} {version} dist/*.zip"
   echo runCmd(relCmd)
 finally:
   discard releaseFile.tryRemoveFile()

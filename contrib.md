@@ -2,16 +2,16 @@
 
 ## Code of conduct
 
-Basically, be nice to everyone and use common sense.
+Basically, be polite to everyone and use common sense.
 
 ## Repository structure
 
 - `examples/` - the language examples; just various snippets I wrote to show off the language.
 - `out/`, `dist/` - the binary output folders, these contains the resulting executables and the zip files created from them, respectively; these should **always** be gitignored.
 - `src/builtins.nim` - the builtin functions that are always available without importing.
-- `src/builtinlibs/` - the internal libraries that come built into NPScript, such as `strings` and `http`.
+- `src/builtinlibs/` - the internal libraries that come built into Page, such as `strings` and `http`.
 - `src/valueimpls` - the implementations for the individual value objects, which get `include`'d into `src/values.nim`; this folder may get removed in the future, see item No. 1 of [todo.md](/todo.md)
-- `src/std/` - the parts of the standard library implementated in NPScript that are written to `~/.npscript/std/`.
+- `src/std/` - the parts of the standard library implementated in Page that are written to `~/.page/std/`.
 - `src/data/` - miscellaneous data that gets included into the binary at compile-time.
 
 ## Code styling

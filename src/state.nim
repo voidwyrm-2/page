@@ -62,7 +62,7 @@ func dbegin*(self: State, size: int) =
 
 func dend*(self: State): Dict =
   if self.dicts.len <= self.dictMin:
-    raise newNpsError("Dict stack underflow")
+    raise newPgError("Dict stack underflow")
 
   self.dicts.pop()
 
@@ -81,20 +81,20 @@ func get*(self: State, name: string): Value =
     if d.hasKey(name):
       return d[name]
 
-  raise newNpsError(fmt"Undefined symbol '{name}'")
+  raise newPgError(fmt"Undefined symbol '{name}'")
 
 proc push*(self: State, val: Value) =
   self.stack.add(val)
 
 func pop*(self: State): Value =
   if self.stack.len == 0:
-    raise newNpsError("stack underflow")
+    raise newPgError("stack underflow")
 
   self.stack.pop()
 
 func peek*(self: State, ind: int): Value =
   if ind < 0 or self.stack.len - 1 < ind:
-    raise newNpsError("stack underflow")
+    raise newPgError("stack underflow")
 
   self.stack[ind]
 
@@ -103,13 +103,13 @@ func peek*(self: State, ind: BackwardsIndex): Value =
 
 proc check*(self: State, args: ProcArgs) =
   if self.stack.len < args.len:
-    raise newNpsError(fmt"Expected {args.len} items on the stack but found {self.stack.len} items instead")
+    raise newPgError(fmt"Expected {args.len} items on the stack but found {self.stack.len} items instead")
 
   var i = self.stack.len - 1
 
   for pst in args:
     if self.stack[i] isnot pst.typ:
-      raise newNpsError(fmt"Expected type {pst.typ} for argument {pst.name} at stack position {i + 1}, but found type {self.stack[i].typ} instead")
+      raise newPgError(fmt"Expected type {pst.typ} for argument {pst.name} at stack position {i + 1}, but found type {self.stack[i].typ} instead")
 
     dec i
 
