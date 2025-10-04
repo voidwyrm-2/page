@@ -54,7 +54,7 @@ func `$`(t: tuple[major, minor, patch: uint]): string =
   fmt"{t.major}.{t.minor}.{t.patch}"
 
 let
-  changelogFinder = re"(Page|NPScript) [0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}"
+  changelogFinder = re"Page [0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}"
   
   commits = runCmd("git --no-pager log --oneline --all")
     .strip()
@@ -92,14 +92,7 @@ for commit in commits:
   if ind.first != 0:
     continue
 
-  c = c[9..^1]
-
-  var n = 0
-
-  while c[n] != ' ':
-    n += 1
-
-  let ver = c[0..n - 1].parseVersion()
+  let ver = c[ind.first..ind.last][5..^1].parseVersion()
 
   if ver > latestRelease:
     changelogs.add("https://github.com/voidwyrm-2/page/commit/" & hash)
