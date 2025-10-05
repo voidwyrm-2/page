@@ -21,7 +21,7 @@ type Interpreter* = ref object
     state: State
 
 
-proc codeEvaler(file, text: string): State;
+proc codeEvaler(file, text: string): State
 
 proc newInterpreter*(): Interpreter =
   new result
@@ -42,6 +42,8 @@ func state*(self: Interpreter): State =
 proc exec*(self: Interpreter, nodes: openArray[Node])
 
 proc exec(self: Interpreter, n: Node) =
+  logger.logd("DEFERRED: " & $self.state.deferred)
+
   case n.typ
   of nSymbol:
     self.state.push(newSymbol(n.tok.lit))
@@ -76,12 +78,15 @@ proc exec(self: Interpreter, n: Node) =
       if v.ptype == ptLiteral:
         evalValues(self.state, runner, v.values)
       else:
-        v.run(cast[pointer](self.state), runner)
+        v.run(cast[pointer](self.state), runner, self.state.deferred)
     else:
       logger.logdv("Word is not a function")
       self.state.push(v)
 
 proc exec*(self: Interpreter, nodes: openArray[Node]) =
+  if self.state.nodeRunner == nil:
+    self.state.nodeRunner = proc(nodes: seq[Node]) = self.exec(nodes)
+
   for n in nodes:
     try:
       self.exec(n)
@@ -90,13 +95,20 @@ proc exec*(self: Interpreter, nodes: openArray[Node]) =
       if not self.state.isLoop:
         logger.logdv("But the ExitError wasn't thrown inside of a loop")
         let e = newPgError("'exit' cannot be used outside of a loop")
-        
+
         case n.typ
         of nWord, nSymbol, nString, nInteger, nReal:
           e.addTrace(n.tok.trace())
         of nList, nProc:
           e.addTrace(n.anchor.trace())
-        
+
+        self.state.deferred.add(@[])
+
+        for p in self.state.deferred[^2]:
+          p.run(cast[pointer](self.state), self.state.nodeRunner, self.state.deferred)
+
+        discard self.state.deferred.pop()
+
         raise e
 
       raise PgExitError()
@@ -109,12 +121,19 @@ proc exec*(self: Interpreter, nodes: openArray[Node]) =
       of nList, nProc:
         e.addTrace(n.anchor.trace())
 
+      self.state.deferred.add(@[])
+
+      for p in self.state.deferred[^2]:
+        p.run(cast[pointer](self.state), self.state.nodeRunner, self.state.deferred)
+      
+      discard self.state.deferred.pop()
+
       raise e
 
 
 proc codeEvaler(file, text: string): State =
-  result = newState(1, builtins.builtins)
-  
+  result = newState(1, builtins.builtins.copy())
+
   let
     l = newLexer(file, text)
     p = newParser(l.lex())

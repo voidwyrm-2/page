@@ -81,6 +81,12 @@ else:
         quit e.code
       except PgError as e:
         echo e
+      finally:
+        var deferred: seq[seq[Value]] = @[@[]]
+
+        for stack in i.state.deferred.rev:
+          for p in stack:
+            p.run(cast[pointer](i.state), i.state.nodeRunner, deferred)
   
       hf.writeLine(line)
       noise.historyAdd(line)

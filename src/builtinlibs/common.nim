@@ -28,8 +28,8 @@ template addV*(dict: Dict, name, docstr: static string, item: Value) =
 
 template addF*(dict: Dict, name, docstr: static string, args: ProcArgs, body: untyped) =
   addV(dict, name, docstr):
-    newProcedure(args, proc(sptr {.inject.}: pointer, r {.inject.}: Runner) =
-      let s {.inject.} = cast[State](sptr)
+    newProcedure(args, proc(sptr {.inject.}: pointer, r {.inject.}: Runner, deferred {.inject.}: var seq[seq[Value]]) =
+      let s {.inject, used.} = cast[State](sptr)
       body
     )
 

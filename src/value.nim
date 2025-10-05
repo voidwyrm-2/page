@@ -5,8 +5,7 @@ import std/[
   tables,
   strformat,
   sequtils,
-  macros,
-  enumerate
+  macros
 ]
 
 import
@@ -18,19 +17,20 @@ export general
 
 
 type
-  Type* {.size: 1.} = enum
-    tNull     = 0,
-    tBool     = 0b1,
-    tSymbol   = 0b10,
-    tString   = 0b100,
-    tInteger  = 0b1000,
-    tReal     = 0b10000,
-    tList     = 0b100000,
-    tDict     = 0b1000000,
-    tProcedure = 0b10000000
+  Type* {.size: 2.} = enum
+    T_DO_NOT_USE = 0,
+    tNull        = 0b1,
+    tBool        = 0b10,
+    tSymbol      = 0b100,
+    tString      = 0b1000,
+    tInteger     = 0b10000,
+    tReal        = 0b100000,
+    tList        = 0b1000000,
+    tDict        = 0b10000000,
+    tProcedure   = 0b100000000
 
   Runner* = proc(nodes: seq[Node])
-  NativeProc* = proc(s: pointer, r: Runner)
+  NativeProc* = proc(s: pointer, r: Runner, deferred: var seq[seq[Value]])
   ProcArgs* = seq[tuple[name: string, typ: Type]]
 
   Dict* = TableRef[string, Value]
@@ -43,6 +43,8 @@ type
   Value* = ref object
     doc*: string
     case typ: Type
+    of T_DO_NOT_USE:
+      discard
     of tNull:
       discard
     of tBool:
@@ -68,17 +70,17 @@ type
         values: seq[Value]
 
 
-const tAny* = Type(255)
+const tAny* = Type(0b111111111)
 
 
 func `or`*(a, b: Type): Type =
-  Type(uint8(a) or uint8(b))
+  Type(uint16(a) or uint16(b))
 
 func `and`*(a, b: Type): Type =
-  Type(uint8(a) and uint8(b))
+  Type(uint16(a) and uint16(b))
 
 func `is`*(a: Value, b: Type): bool =
-  (a.typ and b) != tNull or (a.typ == tNull and b == tNull)
+  (a.typ and b) != T_DO_NOT_USE
 
 func `isnot`*(a: Value, b: Type): bool =
   not (a is b)
@@ -245,9 +247,9 @@ func `[]=`*(self: Value, ind: int, val: Value) =
 proc ptype*(self: Value): ProcType =
   self.ptype
 
-proc run*(self: Value, s: pointer, r: Runner) =
+proc run*(self: Value, s: pointer, r: Runner, deferred: var seq[seq[Value]]) =
   if self.ptype == ptNative:
-    self.native(s, r)
+    self.native(s, r, deferred)
   elif self.ptype == ptComposite:
     if self.nodes.len > 0:
       r(self.nodes)

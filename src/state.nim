@@ -6,8 +6,7 @@ import std/[
 
 import
   general,
-  value,
-  logging
+  value
 
 export
   general,
@@ -19,8 +18,10 @@ type
     dictMin: int
     dicts: seq[Dict]
     stack: seq[Value]
+    deferred*: seq[seq[Value]]
     isLoop*: bool
     codeEval*: proc(file, text: string): State
+    nodeRunner*: Runner
 
 
 func newDict*(size: int): Dict =
@@ -36,17 +37,21 @@ func copy*(dict: Dict): Dict =
   for (k, v) in dict.pairs:
     result[k] = v
 
+
 func newState*(dictMin: int, dicts: varargs[Dict]): State =
   new result
   result.dictMin = dictMin
   result.dicts = newSeqOfCap[Dict](varargsLen(dicts))
+  result.deferred = newSeqOfCap[seq[Value]](varargsLen(dicts))
   result.isLoop = false
 
   for d in dicts:
     result.dicts.add(d)
+    result.deferred.add(@[])
 
   for i in 0 ..< max(-1, dictMin - varargsLen(dicts) - 1):
     result.dicts.add(newDict(0))
+    result.deferred.add(@[])
 
 func dicts*(self: State): seq[Dict] =
   self.dicts
@@ -56,15 +61,19 @@ func stack*(self: State): seq[Value] =
 
 func dbegin*(self: State, dict: Dict) =
   self.dicts.add(dict)
+  self.deferred.add(@[])
 
 func dbegin*(self: State, size: int) =
   self.dbegin(newDict(size))
 
-func dend*(self: State): Dict =
+proc dend*(self: State): Dict =
   if self.dicts.len <= self.dictMin:
     raise newPgError("Dict stack underflow")
 
-  self.dicts.pop()
+  result = self.dicts.pop()
+
+  for p in self.deferred.pop():
+    p.run(cast[pointer](self), self.nodeRunner, self.deferred)
 
 func has*(self: State, name: string): bool =
   result = false
@@ -138,7 +147,7 @@ proc evalValues*(s: State, r: Runner, values: seq[Value]) =
       if value.ptype == ptLiteral:
         evalValues(s, r, value.values)
       else:
-        value.run(cast[pointer](s), r)
+        value.run(cast[pointer](s), r, s.deferred)
     of tList:
       let subs = newState(1)
       

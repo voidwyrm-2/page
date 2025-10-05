@@ -338,7 +338,7 @@ Takes a function F and executes it.
   if f.ptype == ptLiteral:
     evalValues(s, r, f.values)
   else:
-    f.run(sptr, r)
+    f.run(sptr, r, deferred)
 
 # Stack operators
 
@@ -703,31 +703,40 @@ Returns true if bools X or Y are true, otherwise false.
 addF("if",
 """
 'if'
-B F ->
-Executes F if B is true.
-""", @[("B", tBool), ("F", tProcedure)]):
+B P ->
+Executes P if B is true.
+""", @[("B", tBool), ("P", tProcedure)]):
   let
     f = s.pop()
     cond = s.pop().boolv
 
   if cond:
-    f.run(sptr, r)
+    f.run(sptr, r, deferred)
 
 addF("ifelse",
 """
 'ifelse'
-B F F' ->
-Executes F if B is true, otherwise executes F'.
-""", @[("B", tBool), ("F", tProcedure), ("F'", tProcedure)]):
+B P P' ->
+Executes P if B is true, otherwise executes P'.
+""", @[("B", tBool), ("P", tProcedure), ("P'", tProcedure)]):
   let
     fFalse = s.pop()
     fTrue = s.pop()
     cond = s.pop().boolv
 
   if cond:
-    fTrue.run(sptr, r)
+    fTrue.run(sptr, r, deferred)
   else:
-    fFalse.run(sptr, r)
+    fFalse.run(sptr, r, deferred)
+
+addS("null?",
+"""
+'null?'
+X -> X == null
+Duplicates a value X, then returns true if X is null, and false otherwise.
+""", @[("X", tAny)]):
+  "dup null eq"
+
 
 # Loop operators
 
@@ -748,7 +757,7 @@ Executes F until 'exit' or 'quit' is called.
 
   while true:
     try:
-      f.run(sptr, r)
+      f.run(sptr, r, deferred)
     except PgExitError:
       break
 
@@ -776,7 +785,7 @@ Steps from S to E while executing F, incrementing by I each iteration.
     s.push(newInteger(i))
 
     try:
-      f.run(sptr, r)
+      f.run(sptr, r, deferred)
     except PgExitError:
       break
 
@@ -802,7 +811,7 @@ Iterates over L, putting each item on the stack then executing F.
     s.push(item)
 
     try:
-      f.run(sptr, r)
+      f.run(sptr, r, deferred)
     except PgExitError:
       break
 
@@ -1057,6 +1066,52 @@ addV("false",
 Produces the boolean false value.
 """):
   falseSingleton
+
+addF("defer",
+"""
+'defer'
+P ->
+Pushes a procedure P onto the defer stack, which is executed when the 'end' operator is used, when an error is thrown, or at the end of the program.
+""", @[("P", tProcedure)]):
+  let p = s.pop()
+
+  deferred[^1].add(p)
+
+addF("throw",
+"""
+Msg ->
+Throws an error with a string message Msg.
+""", @[("Msg", tString)]):
+  let str = s.pop().strv
+
+  raise newPgError(str)
+
+addF("try",
+"""
+'try'
+P -> S?
+Calls a procedure P and returns null if the procedure exited successfully, or a string if the procedure threw an error.
+""", @[("P", tProcedure)]):
+  let p = s.pop()
+
+  try:
+    p.run(sptr, r, deferred)
+    s.push(nullSingleton)
+  except PgError as e:
+    s.push(newString(e.msg))
+
+addS("trycatch",
+"""
+'trycatch'
+P P' ->
+Calls a procedure P; P' is called if P threw an error.
+""", @[("P", tProcedure), ("P'", tProcedure)]):
+  """
+exch try
+null?
+{pop pop}
+{exch exec}
+ifelse"""
 
 addF("length",
 """
