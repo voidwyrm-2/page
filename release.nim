@@ -1,4 +1,4 @@
-#! /usr/bin/env nim r
+#! /usr/bin/env nim r --hints:off
 
 import std/[
   sequtils,
@@ -63,7 +63,7 @@ let
   latestRelease = runCmd("gh release list --json name -L 1")
     .parseJson()[0]
     .getFields()["name"]
-    .getStr()[9..^1]
+    .getStr()[5..^1]
     .parseVersion()
 
 echo "Generating release for version ", version
