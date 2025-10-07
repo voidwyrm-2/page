@@ -18,9 +18,12 @@ import
   parser,
   builtinlibs/[
     common,
-    libstrings,
-    libhttp
+    libstrings
   ]
+
+when not defined(nohttp):
+  import builtinlibs/libhttp
+
 
 when defined(release):
   const buildMode = "release"
@@ -49,6 +52,9 @@ const
 
 static:
   echo "Compiling Page ", langVersion, " on ", nimscript.buildOS, "/", nimscript.buildCPU, " for ", hostOS, "/", hostCPU, " in ", buildMode, " mode"
+
+  when defined(nohttp):
+    echo "Compiling without HTTP"
 
 
 let builtins* = newDict(0)
@@ -92,8 +98,10 @@ let defaultSearchPaths = [
 
 let internalPackageRegistry = newTable[string, (Dict, string)]([
   ("strings", (libstrings.lib, "'strings'\nProcedures related to string handling and processing.")),
-  ("http", (libhttp.lib, "'http'\nProcedures for creating HTTP requests."))
 ])
+
+when not defined(nohttp):
+  internalPackageRegistry["http"] = (libhttp.lib, "'http'\nProcedures for creating HTTP requests.")
 
 proc importFile*(s: State, path: string): Value =
   var p = path

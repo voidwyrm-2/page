@@ -18,7 +18,8 @@ template addS(name, doc: string, args: ProcArgs, body: string) =
   addS(lib, "strings.pg", name, doc, args, body)
 
 
-addF("chars", """
+addF("chars",
+"""
 'chars'
 S -> L
 Separates a string S into a list L of character strings.
@@ -32,7 +33,8 @@ Separates a string S into a list L of character strings.
 
   s.push(newList(chars))
 
-addF("split", """
+addF("split",
+"""
 'split'
 S D -> L
 Separates a string S into a list L of parts by a delimiter D.
@@ -48,7 +50,8 @@ Separates a string S into a list L of parts by a delimiter D.
 
   s.push(newList(parts))
 
-addF("replace", """
+addF("replace",
+"""
 'replace'
 S Old New -> S'
 Replaces all occurences of Old with New in a string S.
@@ -60,7 +63,8 @@ Replaces all occurences of Old with New in a string S.
 
   s.push(newString(str.replaceWord(old, new)))
 
-addF("joins", """
+addF("joins",
+"""
 'joins'
 L D -> S
 Combines a list of strings L into a single string S, separated by delimiter D.
@@ -79,7 +83,27 @@ Combines a list of strings L into a single string S, separated by delimiter D.
 
   s.push(newString(strs.join(delim)))
 
-addS("join", """
+addS("join",
+"""
 L -> S
+Joins a list of strings end to end.
 """, @[("L", tList)]):
   "() joins"
+
+addF("lower",
+"""
+S -> S'
+Sets all the ASCII letters of a string S to lowercase and returns the resulting string S'.
+""", @[("S", tString)]):
+  let str = s.pop().strv
+
+  s.push(newString(str.toLowerAscii()))
+
+addF("upper",
+"""
+S -> S'
+Sets all the ASCII letters of a string S to uppercase and returns the resulting string S'.
+""", @[("S", tString)]):
+  let str = s.pop().strv
+
+  s.push(newString(str.toUpperAscii()))
