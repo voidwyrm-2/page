@@ -138,12 +138,15 @@ else:
     buf.addf "cpu", paramStr(5)
     buf.addf "forceBuild", "on"
 
-    let (exepath, pack) = getPack(paramStr(6))
-
-    buf.addf("out", exepath)
+    buf.addf(
+      "out",
+      if (let output = getEnv("OUT"); output.len > 0):
+        output
+      else:
+        getPack(fmt"target_{paramStr(4)}_{paramStr(5)}_{paramStr(6)}")[0]
+    )
 
     buf.run()
-    pack()
   of "some":
     let targets = @[
       ("linux", @[
@@ -182,27 +185,31 @@ else:
   of "help":
     echo """
 Usage:
- ./build.nims help
- - Shows this message.
- 
- ./build.nims native
- - Builds for all non-MacOS and non-WASM targets.
- 
- ./build.nims target <os> <cpu> <llvm triple>
- - builds for the specified target.
- 
- ./build.nims macos
- - builds for the MacOS target (only works on MacOS systems).
- 
- ./build.nims host
- - builds for the host system.
- 
- ./build.nims
- - builds in debug mode for the host system.
+  ./build.nims help
+  - Shows this message.
+  
+  ./build.nims native
+  - Builds for all non-MacOS and non-WASM targets.
+  
+  ./build.nims target <os> <cpu> <llvm triple>
+  - builds for the specified target.
+  
+  ./build.nims macos
+  - builds for the MacOS target (only works on MacOS systems).
+  
+  ./build.nims host
+  - builds for the host system.
+  
+  ./build.nims
+  - builds in debug mode for the host system.
 
 Vars:
- 'DEF'
- - Sets the defines; it should be a list of space-separated symbols."""
+  'DEF'
+  - Sets the defines; it should be a list of space-separated symbols.
+  
+  'OUT'
+  - Sets the output for the 'target subcommand'
+"""
   else:
     echo fmt"Unknown subcommand '{cmd}'"
     quit 1
