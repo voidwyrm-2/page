@@ -144,7 +144,9 @@ proc evalValues*(s: State, r: Runner, values: seq[Value]) =
   for value in values:
     case value.typ
     of tProcedure:
-      if value.ptype == ptLiteral:
+      if value.lit:
+        s.push(value)
+      elif value.ptype == ptLiteral:
         evalValues(s, r, value.values)
       else:
         value.run(cast[pointer](s), r, s.deferred)

@@ -171,6 +171,7 @@ proc literalize(s: State, nodes: seq[Node]): seq[Value] =
       result[i] = newList(literalize(s, node.nodes))
     of nProc:
       result[i] = newProcedure(node.nodes)
+      result[i].lit = true
     of nWord:
       result[i] = s.get(node.tok.lit)
 

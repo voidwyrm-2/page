@@ -58,6 +58,7 @@ type
       dictVal: Dict
     of tProcedure:
       args*: ProcArgs
+      lit*: bool
       case ptype: ProcType
       of ptNative:
         native: NativeProc
@@ -89,7 +90,7 @@ func `isnot`*(a: Value, b: set[Type]): bool =
   not (a is b)
 
 const
-  tAny* = tNull or tBool or tSymbol or tInteger or tReal or tList or tDict or tProcedure
+  tAny* = tNull or tBool or tSymbol or tString or tInteger or tReal or tList or tDict or tProcedure
   tNumber* = tInteger or tReal
 
 func toType*(str: string): set[Type] =
