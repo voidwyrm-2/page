@@ -225,7 +225,7 @@ addF("setdoc",
 'setdoc'
 X S -> X'
 Sets the docstring of a value X to a string S.
-""", @[("X", tAny), ("S", tString)]):
+""", @[("X", tAny), ("S", t tString)]):
   let
     str = s.pop().strv
     val = s.peek(^1)
@@ -238,7 +238,7 @@ addS("docofs",
 S -> doc of X from S
 Returns the docstring attached to the value bound to a symbol S.
 The returned docstring may be empty.
-""", @[("S", tSymbol)]):
+""", @[("S", t tSymbol)]):
   "load docof"
 
 addS("doc",
@@ -247,7 +247,7 @@ addS("doc",
 S ->
 Prints the docstring attached to the value bound to a symbol S.
 The returned docstring may be empty.
-""", @[("S", tSymbol)]):
+""", @[("S", t tSymbol)]):
   "docofs ="
 
 addF("type",
@@ -278,7 +278,7 @@ If P doesn't end with the .pg extension, P will be searched for in these directo
 If P can't be found in any of those paths, an error will be thrown.
 
 Back-slashes aren't allowed in P, but on DOS-like systems (e.g. Windows), forward-slashes will be replaced with back-slashes.
-""", @[("P", tString)]):
+""", @[("P", t tString)]):
   let
     path = s.pop().strv
     val = importFile(s, path)
@@ -290,7 +290,7 @@ addF("importdef",
 'importdef'
 P -> D
 Like 'import', but it automatically creates a symbol in the current dictionary with the name '~' + the base path of P with the extension removed.
-""", @[("P", tString)]):
+""", @[("P", t tString)]):
   let
     path = s.pop().strv
     val = importFile(s, path)
@@ -302,7 +302,7 @@ addF("quitn",
 'quitn'
 E ->
 Completely stops the program with an exit code E.
-""", @[("E", tInteger)]):
+""", @[("E", t tInteger)]):
   let code = s.pop().intv
 
   raise PgQuitError(code: code)
@@ -328,7 +328,7 @@ addF("bind",
 'bind'
 F -> F
 Replaces operator names in F with operator values
-""", @[("F", tProcedure)]):
+""", @[("F", t tProcedure)]):
   let f = s.pop()
 
   s.push(newProcedure(f, literalize(s, f.nodes)))
@@ -338,7 +338,7 @@ addF("exec",
 'exec'
 F ->
 Takes a function F and executes it.
-""", @[("F", tProcedure)]):
+""", @[("F", t tProcedure)]):
   let f = s.pop()
 
   s.check(f.args)
@@ -373,7 +373,7 @@ addF("roll",
 'roll'
 ... C R -> ...
 Rotates the top C items on the stack up by R times.
-""", @[("C", tInteger), ("R", tInteger)]):
+""", @[("C", t tInteger), ("R", t tInteger)]):
   let
     roll = s.pop().intv
     count = s.pop().intv
@@ -520,7 +520,7 @@ addF("sprintf",
 Formats a string S and an amount of values akin to the sprintf of C.
 The only format specifiers are '%f' and '%d',
 which format a value in its formatted and debug forms, respectively.
-""", @[("S", tString)]):
+""", @[("S", t tString)]):
   let fmt = s.pop().strv
 
   var
@@ -578,7 +578,7 @@ addS("printf",
 S ->
 Formats with 'sprintf', then prints the result to stdout.
 Shorthand for 'sprintf print'
-""", @[("S", tString)]):
+""", @[("S", t tString)]):
   "sprintf print"
 
 addF("stack",
@@ -612,7 +612,7 @@ addF("readf",
 'readf'
 P -> S
 Reads a path P and returns the resulting string S.
-""", @[("P", tString)]):
+""", @[("P", t tString)]):
   let path = s.pop().strv
   
   var content: string
@@ -629,7 +629,7 @@ addF("writef",
 'writef'
 S P ->
 Writes a string S to a path P.
-""", @[("S", tString), ("P", tString)]):
+""", @[("S", t tString), ("P", t tString)]):
   let
     path = s.pop().strv
     content = s.pop().strv
@@ -689,7 +689,7 @@ addF("and",
 'and'
 X Y -> X and Y
 Returns true if bools X and Y are true, otherwise false.
-""", @[("X", tBool), ("Y", tBool)]):
+""", @[("X", t tBool), ("Y", t tBool)]):
   let
     b = s.pop().boolv
     a = s.pop().boolv
@@ -701,7 +701,7 @@ addF("or",
 'or'
 X Y -> X or Y
 Returns true if bools X or Y are true, otherwise false.
-""", @[("X", tBool), ("Y", tBool)]):
+""", @[("X", t tBool), ("Y", t tBool)]):
   let
     b = s.pop().boolv
     a = s.pop().boolv
@@ -713,7 +713,7 @@ addF("if",
 'if'
 B P ->
 Executes P if B is true.
-""", @[("B", tBool), ("P", tProcedure)]):
+""", @[("B", t tBool), ("P", t tProcedure)]):
   let
     f = s.pop()
     cond = s.pop().boolv
@@ -726,7 +726,7 @@ addF("ifelse",
 'ifelse'
 B P P' ->
 Executes P if B is true, otherwise executes P'.
-""", @[("B", tBool), ("P", tProcedure), ("P'", tProcedure)]):
+""", @[("B", t tBool), ("P", t tProcedure), ("P'", t tProcedure)]):
   let
     fFalse = s.pop()
     fTrue = s.pop()
@@ -753,7 +753,7 @@ addF("loop",
 'loop'
 F ->
 Executes F until 'exit' or 'quit' is called.
-""", @[("F", tProcedure)]):
+""", @[("F", t tProcedure)]):
   let
     f = s.pop()
     prevLoopState = s.isLoop
@@ -774,7 +774,7 @@ addF("for",
 'for'
 S I E F ->
 Steps from S to E while executing F, incrementing by I each iteration.
-""", @[("S", tInteger), ("I", tInteger), ("E", tInteger), ("F", tProcedure)]):
+""", @[("S", t tInteger), ("I", t tInteger), ("E", t tInteger), ("F", t tProcedure)]):
   let
     f = s.pop()
     lend = s.pop().intv
@@ -804,7 +804,7 @@ addF("forall",
 'forall'
 L F ->
 Iterates over L, putting each item on the stack then executing F.
-""", @[("L", tList), ("F", tProcedure)]):
+""", @[("L", t tList), ("F", t tProcedure)]):
   let
     f = s.pop()
     l = s.pop().listv
@@ -831,7 +831,7 @@ addF("list",
 'list'
 S -> L
 Creates a list D with a specified size S.
-""", @[("S", tInteger)]):
+""", @[("S", t tInteger)]):
   let length = s.pop().intv
 
   s.push(newList(length))
@@ -842,7 +842,7 @@ addF("get",
 L I -> L[I]
 Gets the value at an index I of a list L.
 Negative indexes will index from the back of the list
-""", @[("L", tList), ("I", tInteger)]):
+""", @[("L", t tList), ("I", t tInteger)]):
   let
     i = s.pop().intv
     arr = s.pop()
@@ -857,7 +857,7 @@ addF("put",
 L I X -> L[I] = X
 Sets an index I of a list L to a value X.
 Negative indexes will index from the back of the list
-""", @[("L", tList), ("I", tInteger), ("X", tAny)]):
+""", @[("L", t tList), ("I", t tInteger), ("X", tAny)]):
   let
     val = s.pop()
     i = s.pop().intv
@@ -875,7 +875,7 @@ addF("def",
 'def'
 S X ->
 Binds X to the symbol S inside the current dictionary.
-""", @[("S", tSymbol), ("X", tAny)]):
+""", @[("S", t tSymbol), ("X", tAny)]):
   let
     val = s.pop()
     sym = s.pop().strv
@@ -887,7 +887,7 @@ addF("load",
 'load'
 S -> X
 Pushes the value bound to the symbol S onto the stack.
-""", @[("S", tSymbol)]):
+""", @[("S", t tSymbol)]):
   let name = s.pop().strv
 
   s.push(s.get(name))
@@ -897,7 +897,7 @@ addF("dict",
 'dict'
 S -> D
 Creates a dictionary D with an initial size S.
-""", @[("S", tInteger)]):
+""", @[("S", t tInteger)]):
   let size = s.pop().intv
 
   let d = newDictionary(newDict(int(size)))
@@ -909,7 +909,7 @@ addF("begin",
 'begin'
 D ->
 Opens a dictionary D for usage.
-""", @[("D", tDict)]):
+""", @[("D", t tDict)]):
   s.dbegin(s.pop().dictv)
 
 addF("end",
@@ -934,7 +934,7 @@ addF("from",
 D S ->
 Adds a symbol S from a dictionary D into the current dictionary.
 If S already exists in it current dictionary, it will be overwritten.
-""", @[("D", tDict), ("S", tSymbol)]):
+""", @[("D", t tDict), ("S", t tSymbol)]):
   let
     name = s.pop().strv
     d = s.pop().dictv
@@ -950,7 +950,7 @@ addF("allfrom",
 D ->
 Adds the symbols from a dictionary D into the current dictionary.
 Already existing symbols will be overwritten.
-""", @[("D", tDict)]):
+""", @[("D", t tDict)]):
   let d = s.pop().dictv
   
   for k, v in d.pairs:
@@ -962,7 +962,7 @@ addS("scoped",
 D F ->
 Takes a dictionary D, opens D, executes F, then closes D.
 Acts as shorthand for 'begin ... end'.
-""", @[("D", tDict), ("F", tProcedure)]):
+""", @[("D", t tDict), ("F", t tProcedure)]):
   "exch begin exec end"
 
 addS(".",
@@ -970,7 +970,7 @@ addS(".",
 '.' (dot)
 D S -> V
 Gets a symbol S from a dict D, analogous to D.S; if the bound value is a function, then it'll be executed.
-""", @[("D", tDict), ("S", tSymbol)]):
+""", @[("D", t tDict), ("S", t tSymbol)]):
   """
 exch
 begin
@@ -1080,7 +1080,7 @@ addF("defer",
 'defer'
 P ->
 Pushes a procedure P onto the defer stack, which is executed when the 'end' operator is used, when an error is thrown, or at the end of the program.
-""", @[("P", tProcedure)]):
+""", @[("P", t tProcedure)]):
   let p = s.pop()
 
   deferred[^1].add(p)
@@ -1089,7 +1089,7 @@ addF("throw",
 """
 Msg ->
 Throws an error with a string message Msg.
-""", @[("Msg", tString)]):
+""", @[("Msg", t tString)]):
   let str = s.pop().strv
 
   raise newPgError(str)
@@ -1099,7 +1099,7 @@ addF("try",
 'try'
 P -> S?
 Calls a procedure P and returns null if the procedure exited successfully, or a string if the procedure threw an error.
-""", @[("P", tProcedure)]):
+""", @[("P", t tProcedure)]):
   let p = s.pop()
 
   try:
@@ -1113,7 +1113,7 @@ addS("trycatch",
 'trycatch'
 P P' ->
 Calls a procedure P; P' is called if P threw an error.
-""", @[("P", tProcedure), ("P'", tProcedure)]):
+""", @[("P", t tProcedure), ("P'", t tProcedure)]):
   """
 exch try
 null?
@@ -1126,7 +1126,7 @@ addF("length",
 'length'
 X -> len of X
 Gets the length of a value X
-""", @[("X", tAny)]):
+""", @[("X", tString or tList or tDict)]):
   let length = s.pop().len()
 
   s.push(newInteger(length))
@@ -1138,7 +1138,7 @@ S -> I
 "Convert to Integer"
 Converts a string S into an integer I.
 An error is thrown if S is not representable as an integer.
-""", @[("S", tString)]):
+""", @[("S", t tString)]):
   let str = s.pop().strv
 
   var n: int
@@ -1156,7 +1156,7 @@ S -> R
 "Convert to Real"
 Converts a string S into a real R.
 An error is thrown if S is not representable as a real.
-""", @[("S", tString)]):
+""", @[("S", t tString)]):
   let str = s.pop().strv
 
   var n: float
@@ -1174,7 +1174,7 @@ S -> S'
 "Convert to Symbol"
 Converts a string S into a symbol S'.
 The allowed characters are unrestricted.
-""", @[("S", tString)]):
+""", @[("S", t tString)]):
   let str = s.pop().strv
 
   s.push(newSymbol(str))

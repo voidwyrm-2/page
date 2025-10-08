@@ -18,20 +18,19 @@ export general
 
 type
   Type* {.size: 2.} = enum
-    T_DO_NOT_USE = 0,
-    tNull        = 0b1,
-    tBool        = 0b10,
-    tSymbol      = 0b100,
-    tString      = 0b1000,
-    tInteger     = 0b10000,
-    tReal        = 0b100000,
-    tList        = 0b1000000,
-    tDict        = 0b10000000,
-    tProcedure   = 0b100000000
+    tNull
+    tBool
+    tSymbol
+    tString
+    tInteger
+    tReal
+    tList
+    tDict
+    tProcedure
 
   Runner* = proc(nodes: seq[Node])
   NativeProc* = proc(s: pointer, r: Runner, deferred: var seq[seq[Value]])
-  ProcArgs* = seq[tuple[name: string, typ: Type]]
+  ProcArgs* = seq[tuple[name: string, typ: set[Type]]]
 
   Dict* = TableRef[string, Value]
 
@@ -43,8 +42,6 @@ type
   Value* = ref object
     doc*: string
     case typ: Type
-    of T_DO_NOT_USE:
-      discard
     of tNull:
       discard
     of tBool:
@@ -69,49 +66,59 @@ type
       of ptLiteral:
         values: seq[Value]
 
+func `t`*(typ: Type): set[Type] =
+  {typ}
 
-const tAny* = Type(0b111111111)
+func `or`*(a, b: Type): set[Type] =
+  {a, b}
 
-
-func `or`*(a, b: Type): Type =
-  Type(uint16(a) or uint16(b))
-
-func `and`*(a, b: Type): Type =
-  Type(uint16(a) and uint16(b))
+func `or`*(a: set[Type], b: Type): set[Type] =
+  result = a
+  result.incl(b)
 
 func `is`*(a: Value, b: Type): bool =
-  (a.typ and b) != T_DO_NOT_USE
+  a.typ == b
 
 func `isnot`*(a: Value, b: Type): bool =
   not (a is b)
 
-func toType*(str: string): Type =
+func `is`*(a: Value, b: set[Type]): bool =
+  a.typ in b
+
+func `isnot`*(a: Value, b: set[Type]): bool =
+  not (a is b)
+
+const
+  tAny* = tNull or tBool or tSymbol or tInteger or tReal or tList or tDict or tProcedure
+  tNumber* = tInteger or tReal
+
+func toType*(str: string): set[Type] =
   case str
   of "Null":
-    tNull
+    t tNull
   of "Bool":
-    tBool
+    t tBool
   of "Symbol":
-    tSymbol
+    t tSymbol
   of "String":
-    tString
+    t tString
   of "Integer":
-    tInteger
+    t tInteger
   of "Real":
-    tReal
+    t tReal
   of "List":
-    tList
+    t tList
   of "Dict":
-    tDict
+    t tDict
   of "Procedure":
-    tProcedure
+    t tProcedure
   of "Any":
     tAny
   else:
     raise newPgError(fmt"Invalid type '{str}'")
 
-func `$`*(self: Type): string =
-  case self
+func `$`*(typ: Type): string =
+  case typ
   of tNull:
     "Null"
   of tBool:
@@ -130,20 +137,20 @@ func `$`*(self: Type): string =
     "Dict"
   of tProcedure:
     "Procedure"
-  else: # To account for type unions
-    let n = uint8(self)
-    case n
-    of 255:
-      "Any"
-    else:
-      ""
 
-
-const tNumber* = tInteger or tReal
+func `$`*(types: set[Type]): string =
+  let strs = types.toSeq().mapIt($it)
+  
+  if strs.len == 1:
+    result = $strs[0]
+  else:
+    result = strs[0..^2].join(", ")
+    result &= ", or "
+    result &= $strs[^1]
 
 
 func newProcArgs*(size: Natural): ProcArgs =
-  newSeq[tuple[name: string, typ: Type]]()
+  newSeq[tuple[name: string, typ: set[Type]]]()
 
 
 func newNull*(): Value =

@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.26.0"
+version       = "0.27.0"
 author        = "Nuclear Pasta"
 description   = "A PostScript-like language"
 license       = "Apache-2.0"

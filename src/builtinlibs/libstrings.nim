@@ -23,7 +23,7 @@ addF("chars",
 'chars'
 S -> L
 Separates a string S into a list L of character strings.
-""", @[("S", tString)]):
+""", @[("S", t tString)]):
   let str = s.pop().strv
 
   var chars = newSeq[Value](str.len)
@@ -38,7 +38,7 @@ addF("split",
 'split'
 S D -> L
 Separates a string S into a list L of parts by a delimiter D.
-""", @[("S", tString), ("D", tString)]):
+""", @[("S", t tString), ("D", t tString)]):
   let
     delim = s.pop().strv
     str = s.pop().strv
@@ -55,7 +55,7 @@ addF("replace",
 'replace'
 S Old New -> S'
 Replaces all occurences of Old with New in a string S.
-""", @[("S", tString), ("Old", tString), ("New", tString)]):
+""", @[("S", t tString), ("Old", t tString), ("New", t tString)]):
   let
     new = s.pop().strv
     old = s.pop().strv
@@ -68,7 +68,7 @@ addF("joins",
 'joins'
 L D -> S
 Combines a list of strings L into a single string S, separated by delimiter D.
-""", @[("L", tList), ("D", tString)]):
+""", @[("L", t tList), ("D", t tString)]):
   let
     delim = s.pop().strv
     l = s.pop().listv
@@ -76,7 +76,7 @@ Combines a list of strings L into a single string S, separated by delimiter D.
   var strs = newSeqOfCap[string](l.len)
 
   for v in l:
-    if v.typ != tString:
+    if v isnot tString:
       raise newPgError("List argument for 'joins' must be only strings")
     
     strs.add(v.strv)
@@ -87,14 +87,14 @@ addS("join",
 """
 L -> S
 Joins a list of strings end to end.
-""", @[("L", tList)]):
+""", @[("L", t tList)]):
   "() joins"
 
 addF("lower",
 """
 S -> S'
 Sets all the ASCII letters of a string S to lowercase and returns the resulting string S'.
-""", @[("S", tString)]):
+""", @[("S", t tString)]):
   let str = s.pop().strv
 
   s.push(newString(str.toLowerAscii()))
@@ -103,7 +103,7 @@ addF("upper",
 """
 S -> S'
 Sets all the ASCII letters of a string S to uppercase and returns the resulting string S'.
-""", @[("S", tString)]):
+""", @[("S", t tString)]):
   let str = s.pop().strv
 
   s.push(newString(str.toUpperAscii()))

@@ -6,7 +6,7 @@
 - [x] `defer` operator
 - [ ] Unit tests, in both Nim and Page
 - [ ] `os` internal library
-- [ ] HTTP web framework internal library
 - [ ] `regex` internal library
+- [ ] HTTP web framework internal library
 - [ ] More examples
 - [ ] C interop (very low priority)

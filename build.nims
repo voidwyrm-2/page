@@ -61,7 +61,8 @@ proc addp(self: Cmd, pkg: string) =
   self.addf "p", "nimbledeps" / "pkgs2" / pkg, true
 
 proc checkEnv(self: Cmd) =
-  self.defines = getEnv("DEF").split(' ').toHashSet()
+  if (let def = getEnv("DEF"); def.len > 0):
+    self.defines = def.split(' ').toHashSet()
 
 proc addExtras(self: Cmd) =
   if "nohttp" notin self.defines:
