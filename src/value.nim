@@ -18,19 +18,21 @@ export general
 
 type
   Type* {.size: 2.} = enum
-    tNull
-    tBool
-    tSymbol
-    tString
-    tInteger
-    tReal
-    tList
-    tDict
-    tProcedure
+    tUnused   = 0b0,
+    tNull      = 0b1,
+    tBool      = 0b10,
+    tSymbol    = 0b100,
+    tString    = 0b1000,
+    tInteger   = 0b10000,
+    tReal      = 0b100000,
+    tList      = 0b1000000,
+    tDict      = 0b10000000,
+    tProcedure = 0b100000000,
+    tExtitem   = 0b1000000000
 
   Runner* = proc(nodes: seq[Node])
   NativeProc* = proc(s: pointer, r: Runner, deferred: var seq[seq[Value]])
-  ProcArgs* = seq[tuple[name: string, typ: set[Type]]]
+  ProcArgs* = seq[tuple[name: string, typ: Type]]
 
   Dict* = TableRef[string, Value]
 
@@ -42,6 +44,8 @@ type
   Value* = ref object
     doc*: string
     case typ: Type
+    of tUnused:
+      discard
     of tNull:
       discard
     of tBool:
@@ -66,53 +70,55 @@ type
         nodes: seq[Node]
       of ptLiteral:
         values: seq[Value]
+    of tExtitem:
+      id*: string
+      dat*: pointer
+      fmtf*: proc(dat: pointer): string {.noSideEffect.}
 
-func `t`*(typ: Type): set[Type] =
-  {typ}
+func `or`*(a, b: Type): Type =
+  cast[Type](cast[uint16](a) or cast[uint16](b))
 
-func `or`*(a, b: Type): set[Type] =
-  {a, b}
-
-func `or`*(a: set[Type], b: Type): set[Type] =
-  result = a
-  result.incl(b)
+func `and`*(a, b: Type): Type =
+  cast[Type](cast[uint16](a) and cast[uint16](b))
 
 func `is`*(a: Value, b: Type): bool =
-  a.typ == b
+  (a.typ and b) != tUnused
 
 func `isnot`*(a: Value, b: Type): bool =
   not (a is b)
 
-func `is`*(a: Value, b: set[Type]): bool =
-  a.typ in b
+func `is`*(a: Value, id: string): bool =
+  a.id == id
 
-func `isnot`*(a: Value, b: set[Type]): bool =
-  not (a is b)
+func `isnot`*(a: Value, id: string): bool =
+  not (a is id)
 
 const
-  tAny* = tNull or tBool or tSymbol or tString or tInteger or tReal or tList or tDict or tProcedure
+  tAny* = tNull or tBool or tSymbol or tString or tInteger or tReal or tList or tDict or tProcedure or tExtitem
   tNumber* = tInteger or tReal
 
-func toType*(str: string): set[Type] =
+func toType*(str: string): Type =
   case str
   of "Null":
-    t tNull
+    tNull
   of "Bool":
-    t tBool
+    tBool
   of "Symbol":
-    t tSymbol
+    tSymbol
   of "String":
-    t tString
+    tString
   of "Integer":
-    t tInteger
+    tInteger
   of "Real":
-    t tReal
+    tReal
   of "List":
-    t tList
+    tList
   of "Dict":
-    t tDict
+    tDict
   of "Procedure":
-    t tProcedure
+    tProcedure
+  of "Extitem":
+    tExtitem
   of "Any":
     tAny
   else:
@@ -121,37 +127,43 @@ func toType*(str: string): set[Type] =
 func `$`*(typ: Type): string =
   case typ
   of tNull:
-    "Null"
+    result = "Null"
   of tBool:
-    "Bool"
+    result = "Bool"
   of tSymbol:
-    "Symbol"
+    result = "Symbol"
   of tString:
-    "String"
+    result = "String"
   of tInteger:
-    "Integer"
+    result = "Integer"
   of tReal:
-    "Real"
+    result = "Real"
   of tList:
-    "List"
+    result = "List"
   of tDict:
-    "Dict"
+    result = "Dict"
   of tProcedure:
-    "Procedure"
-
-func `$`*(types: set[Type]): string =
-  let strs = types.toSeq().mapIt($it)
-  
-  if strs.len == 1:
-    result = $strs[0]
+    result = "Procedure"
+  of tExtitem:
+    result = "Extitem"
   else:
-    result = strs[0..^2].join(", ")
-    result &= ", or "
-    result &= $strs[^1]
+    var types = newSeqOfCap[Type](11)
+
+    for i in 0..<11:
+      let t = typ and cast[Type](1 shl i)
+      if t != tUnused:
+        types.add(t)
+
+    if types.len == 2:
+      result = fmt"{types[0]} or {types[1]}"
+    else:
+      result = types[0..^2].map(`$`).join(", ")
+      result &= ", or "
+      result &= $types[^1]
 
 
 func newProcArgs*(size: Natural): ProcArgs =
-  newSeq[tuple[name: string, typ: set[Type]]]()
+  newSeq[tuple[name: string, typ: Type]]()
 
 
 func newNull*(): Value =
@@ -207,6 +219,9 @@ proc newProcedure*(args: ProcArgs, file, text: string): Value =
 
 proc newProcedure*(original: Value, values: seq[Value]): Value =
   Value(typ: tProcedure, args: original.args, ptype: ptLiteral, values: values)
+
+proc newExtitem*(dat: pointer): Value =
+  Value(typ: tExtitem, dat: dat)
 
 
 func typ*(self: Value): Type =
@@ -418,6 +433,11 @@ func debug*(self: Value): string =
       "{" & self.nodes.mapIt(it.dbgLit).join(" ") & "}"
     of ptLiteral:
       "{" & self.values.mapIt(it.debug()).join(" ") & "}"
+  of tExtitem:
+    if self.fmtf != nil:
+      self.fmtf(self.dat)
+    else:
+      fmt"Ext@{cast[uint64](self.dat).toHex()}"
   else:
     self.format()
 

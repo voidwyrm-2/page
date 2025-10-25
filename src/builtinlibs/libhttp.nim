@@ -30,7 +30,7 @@ addF("init", """
 'init'
 UA R ->
 Initializes the HTTP client with the useragent UA and maximum redirects R.
-""", @[("UA", t tString), ("R", t tInteger)]):
+""", @[("UA", tString), ("R", tInteger)]):
   let
     redirects = s.pop().intv
     useragent = s.pop().strv
@@ -42,7 +42,7 @@ addF("req", """
 U B T -> R
 Sends a request of a specified type T with a body B to a url U,
 then returns a response R.
-""", @[("U", t tString), ("B", t tString), ("T", t tSymbol)]):
+""", @[("U", tString), ("B", tString), ("T", tSymbol)]):
   checkClient()
 
   let
@@ -72,26 +72,26 @@ addS("get", """
 'get'
 U -> R
 Sends a GET request to a URL U.
-""", @[("U", t tString)]):
+""", @[("U", tString)]):
   "() /GET req"
 
 addS("post", """
 'post'
 U B -> R
 Sends a POST request to a URL U with a body B.
-""", @[("U", t tString)]):
+""", @[("U", tString)]):
   "/POST req"
 
 addS("put", """
 'put'
 U B -> R
 Sends a PUT request to a URL U with a body B.
-""", @[("U", t tString)]):
+""", @[("U", tString)]):
   "/POST req"
 
 addS("delete", """
 'delete'
 U -> R
 Sends a DELETE request to a URL U.
-""", @[("U", t tString)]):
+""", @[("U", tString)]):
   "() /DELETE req"

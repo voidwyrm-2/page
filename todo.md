@@ -5,7 +5,7 @@
 - [x] `trycatch` and `try` operators
 - [x] `defer` operator
 - [ ] Unit tests, in both Nim and Page
-- [ ] `os` internal library
+- [x] `os` internal library
 - [ ] `regex` internal library
 - [ ] HTTP web framework internal library
 - [ ] More examples

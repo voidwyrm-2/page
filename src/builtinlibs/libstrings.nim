@@ -23,7 +23,7 @@ addF("chars",
 'chars'
 S -> L
 Separates a string S into a list L of character strings.
-""", @[("S", t tString)]):
+""", @[("S", tString)]):
   let str = s.pop().strv
 
   var chars = newSeq[Value](str.len)
@@ -38,7 +38,7 @@ addF("split",
 'split'
 S D -> L
 Separates a string S into a list L of parts by a delimiter D.
-""", @[("S", t tString), ("D", t tString)]):
+""", @[("S", tString), ("D", tString)]):
   let
     delim = s.pop().strv
     str = s.pop().strv
@@ -55,7 +55,7 @@ addF("replace",
 'replace'
 S Old New -> S'
 Replaces all occurences of Old with New in a string S.
-""", @[("S", t tString), ("Old", t tString), ("New", t tString)]):
+""", @[("S", tString), ("Old", tString), ("New", tString)]):
   let
     new = s.pop().strv
     old = s.pop().strv
@@ -68,7 +68,7 @@ addF("joins",
 'joins'
 L D -> S
 Combines a list of strings L into a single string S, separated by delimiter D.
-""", @[("L", t tList), ("D", t tString)]):
+""", @[("L", tList), ("D", tString)]):
   let
     delim = s.pop().strv
     l = s.pop().listv
@@ -87,14 +87,14 @@ addS("join",
 """
 L -> S
 Joins a list of strings end to end.
-""", @[("L", t tList)]):
+""", @[("L", tList)]):
   "() joins"
 
 addF("lower",
 """
 S -> S'
 Sets all the ASCII letters of a string S to lowercase and returns the resulting string S'.
-""", @[("S", t tString)]):
+""", @[("S", tString)]):
   let str = s.pop().strv
 
   s.push(newString(str.toLowerAscii()))
@@ -103,7 +103,7 @@ addF("upper",
 """
 S -> S'
 Sets all the ASCII letters of a string S to uppercase and returns the resulting string S'.
-""", @[("S", t tString)]):
+""", @[("S", tString)]):
   let str = s.pop().strv
 
   s.push(newString(str.toUpperAscii()))
