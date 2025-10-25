@@ -937,7 +937,7 @@ addF("from",
 'from'
 D S ->
 Adds a symbol S from a dictionary D into the current dictionary.
-If S already exists in it current dictionary, it will be overwritten.
+If S already exists in the current dictionary, it will be overwritten.
 """, @[("D", tDict), ("S", tSymbol)]):
   let
     name = s.pop().strv
@@ -947,6 +947,25 @@ If S already exists in it current dictionary, it will be overwritten.
     raise newPgError(fmt"Symbol '{name}' does not exist")
 
   s.set(name, d[name])
+
+addF("somefrom",
+"""
+'somefrom'
+D SL ->
+Adds a list of symbols SL from a dictionary D into the current dictionary.
+If a symbol from SL already exists in the current dictionary, it will be overwritten.
+""", @[("D", tDict), ("SL", tList)]):
+  let
+    names = s.pop().listv
+    d = s.pop().dictv
+
+  for sym in names:
+    let name = sym.strv
+
+    if not d.hasKey(name):
+      raise newPgError(fmt"Symbol '{name}' does not exist")
+
+    s.set(name, d[name])
 
 addF("allfrom",
 """
