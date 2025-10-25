@@ -189,8 +189,8 @@ Usage:
   ./build.nims help
   - Shows this message.
   
-  ./build.nims native
-  - Builds for all non-MacOS and non-WASM targets.
+  ./build.nims some
+  - Builds for all non-MacOS.
   
   ./build.nims target <os> <cpu> <llvm triple>
   - builds for the specified target.
