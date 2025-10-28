@@ -6,10 +6,8 @@
   /rend exch def
   /rstart exch def
 
-  [
-    rstart 1 sub
-    {
-      1 add 2dup
+  [ rstart 1 sub
+    { 1 add 2dup
 
       rend eq
       {pop exit}

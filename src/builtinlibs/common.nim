@@ -14,7 +14,8 @@ export
   general,
   value,
   state,
-  logging
+  logging,
+  random
 
 
 template addV*(dict: Dict, name, docstr: static string, item: Value) =
@@ -28,7 +29,7 @@ template addV*(dict: Dict, name, docstr: static string, item: Value) =
 
 template addF*(dict: Dict, name, docstr: static string, args: ProcArgs, body: untyped) =
   addV(dict, name, docstr):
-    newProcedure(args, proc(sptr {.inject.}: pointer, r {.inject.}: Runner, deferred {.inject.}: var seq[seq[Value]]) =
+    newProcedure(args, proc(sptr {.inject.}: pointer, ps {.inject.}: ProcState) =
       let s {.inject, used.} = cast[State](sptr)
       body
     )
@@ -36,3 +37,9 @@ template addF*(dict: Dict, name, docstr: static string, args: ProcArgs, body: un
 template addS*(dict: Dict, file, name, docstr: static string, args: ProcArgs, body: string) =
   addV(dict, name, docstr):
     newProcedure(args, file, body)
+
+
+let
+  trueSingleton* = newBool(true)
+  falseSingleton* = newBool(false)
+  nullSingleton* = newNull()

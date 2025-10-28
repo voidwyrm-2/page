@@ -13,8 +13,7 @@
 
   [ % lists get their own stack
     0 1 % The initial Fibonacci values
-    {
-      over over add % a = b; b = a + b
+    { over over add % a = b; b = a + b
 
       /i i 1 sub def % Decrement the counter, 'i'
       i 1 le % If counter is less than 1, exit loop

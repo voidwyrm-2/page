@@ -14,13 +14,18 @@ export
 
 
 type
+  GlobalState* = ref object
+    exe*, file*: string
+    args*: seq[string]
+
   State* = ref object
+    g*: GlobalState
     dictMin: int
     dicts: seq[Dict]
     stack: seq[Value]
     deferred*: seq[seq[Value]]
     isLoop*: bool
-    codeEval*: proc(file, text: string): State
+    codeEval*: proc(g: GlobalState, file, text: string): State
     nodeRunner*: Runner
 
 
@@ -36,6 +41,13 @@ func copy*(dict: Dict): Dict =
 
   for (k, v) in dict.pairs:
     result[k] = v
+
+
+func newGlobalState*(exe, file: string, args: seq[string]): GlobalState =
+  new result
+  result.exe = exe
+  result.file = file
+  result.args = args
 
 
 func newState*(dictMin: int, dicts: varargs[Dict]): State =
@@ -66,14 +78,14 @@ func dbegin*(self: State, dict: Dict) =
 func dbegin*(self: State, size: int) =
   self.dbegin(newDict(size))
 
-proc dend*(self: State): Dict =
+proc dend*(self: State, ps: ProcState): Dict =
   if self.dicts.len <= self.dictMin:
     raise newPgError("Dict stack underflow")
 
   result = self.dicts.pop()
 
   for p in self.deferred.pop():
-    p.run(cast[pointer](self), self.nodeRunner, self.deferred)
+    p.run(cast[pointer](self), ps)
 
 func has*(self: State, name: string): bool =
   result = false
@@ -140,20 +152,20 @@ proc `$`*(self: State): string =
   items.join("\n")
 
 
-proc evalValues*(s: State, r: Runner, values: seq[Value]) =
+proc evalValues*(s: State, ps: ProcState, values: seq[Value]) =
   for value in values:
     case value.typ
     of tProcedure:
       if value.lit:
         s.push(value)
       elif value.ptype == ptLiteral:
-        evalValues(s, r, value.values)
+        evalValues(s, ps, value.values)
       else:
-        value.run(cast[pointer](s), r, s.deferred)
+        value.run(cast[pointer](s), ps)
     of tList:
       let subs = newState(1)
       
-      evalValues(subs, r, value.listv)
+      evalValues(subs, ps, value.listv)
 
       s.push(newList(subs.stack))
     else:

@@ -3,7 +3,6 @@ import std/[
   algorithm,
   strutils,
   strformat,
-  random,
   os,
   sequtils,
   math,
@@ -79,6 +78,14 @@ template addMathOp(name, doc: static string, op: untyped) =
     
     s.push(op(a, b))
 
+template addBitOp(name, doc: static string, op: untyped) =
+  addF(name, doc, @[("X", tInteger), ("Y", tInteger)]):
+    let
+      b = s.pop().intv
+      a = s.pop().intv
+    
+    s.push(newInteger(op(a, b)))
+
 template addBoolOp(name, doc: static string, op: untyped) =
   addF(name, doc, @[("X", tAny), ("Y", tAny)]):
     let
@@ -119,7 +126,7 @@ proc importFile*(s: State, path: string): Value =
     if internalPackageRegistry.hasKey(p):
       let
         (d, doc) = internalPackageRegistry[p]
-        val = newDictionary(d)
+        val = newDictionary(d.copy())
 
       val.doc = doc
 
@@ -140,14 +147,13 @@ proc importFile*(s: State, path: string): Value =
     if not found:
       raise newPgError(fmt"'{p}' could not be found in any search path:" & "\n Internal package registry\n " & packageSearchPaths.join("\n "))
 
-  var content: string
+  let content =
+    try:
+      p.readFile()
+    except IOError as e:
+      raise newPgError(fmt"Could not read from '{p}':" & "\n  " & e.msg)
 
-  try:
-    content = readFile p
-  except IOError as e:
-    raise newPgError(fmt"Could not read from '{p}':" & "\n  " & e.msg)
-
-  let substate = s.codeEval(p, content)
+  let substate = s.codeEval(newGlobalState(s.g.exe, p, @[]), p, content)
 
   if not substate.has("export"):
     raise newPgError("Symbol 'export' must be defined in imported modules")
@@ -348,11 +354,19 @@ Takes a function F and executes it.
   s.check(f.args)
 
   if f.ptype == ptLiteral:
-    evalValues(s, r, f.values)
+    evalValues(s, ps, f.values)
   else:
-    f.run(sptr, r, deferred)
+    f.run(sptr, ps)
 
 # Stack operators
+
+addF("item?",
+"""
+'item?'
+-> B
+Returns true if the stack has items on it, false otherwise.
+""", @[]):
+  s.push(newBool(s.stack.len > 0))
 
 addF("pop",
 """
@@ -382,6 +396,9 @@ Rotates the top C items on the stack up by R times.
     roll = s.pop().intv
     count = s.pop().intv
 
+  if count == 0:
+    return
+
   var expe = newProcArgs(count)
 
   for i in 0..<expe.len():
@@ -391,19 +408,17 @@ Rotates the top C items on the stack up by R times.
 
   let st = s.stack()
 
-  var sl = st[st.len() - count ..< st.len()]
+  var sl = st[st.len() - count .. ^1]
   
   sl.rotateLeft(-roll)
 
   var j = 0
 
-  for i in st.len() - count ..< st.len():
-    s[i] = sl[j]
-    j += 1
+  copyMem(st[st.len() - count].addr, sl[0].addr, sl.len)
 
 addS("exch",
 """
-'rot'
+'exch'
 X Y -> Y X
 Exchanges the positions of values X and Y.
 """, @[("X", tAny), ("Y", tAny)]):
@@ -416,6 +431,14 @@ X Y Z -> Y Z X
 Rotates the top three values on the stack to the left.
 """, @[("X", tAny), ("Y", tAny), ("Z", tAny)]):
   "3 1 roll"
+
+addS("-rot",
+"""
+'-rot'
+X Y Z -> Z X Y
+Rotates the top three values on the stack to the right.
+""", @[("X", tAny), ("Y", tAny), ("Z", tAny)]):
+  "3 -1 roll"
 
 
 # Arithmetic operators
@@ -469,21 +492,92 @@ X Y -> X % Y
 Computes the power of X and Y.
 """, `^`)
 
+addBitOp("band",
+"""
+'band'
+X Y -> X & Y
+Computes the bitwise AND of X and Y.
+""", `and`)
+
+addBitOp("bor",
+"""
+'bor'
+X Y -> X | Y
+Computes the bitwise OR of X and Y.
+""", `or`)
+
+addBitOp("xor",
+"""
+'xor'
+X Y -> X ^ Y
+Computes the bitwise XOR of X and Y.
+""", `xor`)
+
+addF("bnot",
+"""
+'bnot'
+X -> ~X
+Computes the bitwise NOT of X.
+""", @[("X", tInteger)]):
+  let a = s.pop().intv
+  
+  s.push(newInteger(not a))
+
 addV("pi",
 """
+'pi'
 -> pi
 Returns the value of Pi.
 """):
   newReal(float32(PI))
 
+addV("inf",
+"""
+'inf'
+-> inf
+Returns the value of infinity.
+"""):
+  newReal(float32(Inf))
+
+addV("-inf",
+"""
+'-inf'
+-> -inf
+Returns the value of negative infinity.
+"""):
+  newReal(float32(NegInf))
+
+addF("round",
+"""
+'round'
+R -> R'
+Rounds a real R half away from zero.
+""", @[("N", tReal)]):
+  s.push(newReal(s.pop().realv.round()))
+
+addF("floor",
+"""
+'floor'
+R -> R'
+Rounds a real R towards negative infinity.
+""", @[("R", tReal)]):
+  s.push(newReal(s.pop().realv.floor()))
+
+addF("ceil",
+"""
+'ceil'
+R -> R'
+Rounds a real R towards infinity.
+""", @[("R", tReal)]):
+  s.push(newReal(s.pop().realv.ceil()))
+
 addF("rand",
 """
 'rand'
 -> R
-Generates pseudo-random real.
+Generates a pseudo-random real.
 """, @[]):
-  var r = initRand()
-  s.push(newReal(r.rand(1.0)))
+  s.push(newReal(ps.rand.rand(1.0)))
 
 
 # IO operators
@@ -500,7 +594,7 @@ and will not print lists in full.
 
 addF("==",
 """
-'==' debug
+'==' (debug)
 X ->
 Takes in a value X and prints it in its debug form.
 This function will print any value as it was in code form except functions,
@@ -712,6 +806,14 @@ Returns true if bools X or Y are true, otherwise false.
 
   s.push(newBool(a or b))
 
+addF("not",
+"""
+'not'
+B -> !B
+Negates a bool B.
+""", @[("B", tBool)]):
+  s.push(newBool(not s.pop().boolv))
+
 addF("if",
 """
 'if'
@@ -723,7 +825,7 @@ Executes P if B is true.
     cond = s.pop().boolv
 
   if cond:
-    f.run(sptr, r, deferred)
+    f.run(sptr, ps)
 
 addF("ifelse",
 """
@@ -737,9 +839,9 @@ Executes P if B is true, otherwise executes P'.
     cond = s.pop().boolv
 
   if cond:
-    fTrue.run(sptr, r, deferred)
+    fTrue.run(sptr, ps)
   else:
-    fFalse.run(sptr, r, deferred)
+    fFalse.run(sptr, ps)
 
 addS("null?",
 """
@@ -756,7 +858,7 @@ addF("loop",
 """
 'loop'
 F ->
-Executes F until 'exit' or 'quit' is called.
+Executes a procedure F until 'exit' or 'quit' is called.
 """, @[("F", tProcedure)]):
   let
     f = s.pop()
@@ -769,7 +871,7 @@ Executes F until 'exit' or 'quit' is called.
 
   while true:
     try:
-      f.run(sptr, r, deferred)
+      f.run(sptr, ps)
     except PgExitError:
       break
 
@@ -777,7 +879,7 @@ addF("for",
 """
 'for'
 S I E F ->
-Steps from S to E while executing F, incrementing by I each iteration.
+Steps from S to E while executing a procedure F, incrementing by I each iteration.
 """, @[("S", tInteger), ("I", tInteger), ("E", tInteger), ("F", tProcedure)]):
   let
     f = s.pop()
@@ -797,7 +899,7 @@ Steps from S to E while executing F, incrementing by I each iteration.
     s.push(newInteger(i))
 
     try:
-      f.run(sptr, r, deferred)
+      f.run(sptr, ps)
     except PgExitError:
       break
 
@@ -807,7 +909,7 @@ addF("forall",
 """
 'forall'
 L F ->
-Iterates over L, putting each item on the stack then executing F.
+Iterates over a list L, putting each item on the stack then executing a procedure F.
 """, @[("L", tList), ("F", tProcedure)]):
   let
     f = s.pop()
@@ -823,7 +925,7 @@ Iterates over L, putting each item on the stack then executing F.
     s.push(item)
 
     try:
-      f.run(sptr, r, deferred)
+      f.run(sptr, ps)
     except PgExitError:
       break
 
@@ -877,9 +979,9 @@ Negative indexes will index from the back of the list
 addF("def",
 """
 'def'
-S X ->
+S V ->
 Binds X to the symbol S inside the current dictionary.
-""", @[("S", tSymbol), ("X", tAny)]):
+""", @[("S", tSymbol), ("V", tAny)]):
   let
     val = s.pop()
     sym = s.pop().strv
@@ -889,12 +991,24 @@ Binds X to the symbol S inside the current dictionary.
 addF("load",
 """
 'load'
-S -> X
-Pushes the value bound to the symbol S onto the stack.
+S -> V
+Retrieves the value bound to a symbol S.
 """, @[("S", tSymbol)]):
   let name = s.pop().strv
 
   s.push(s.get(name))
+
+addS("load?",
+"""
+'load?'
+S -> V?
+Retrieves the value bound to a symbol S.
+If that symbol doesn't have a bound value, null is returned.
+""", @[("S", tSymbol)]):
+  """
+{load}
+{pop pop null}
+trycatch"""
 
 addF("dict",
 """
@@ -907,6 +1021,14 @@ Creates a dictionary D with an initial size S.
   let d = newDictionary(newDict(int(size)))
 
   s.push(d)
+
+addF("dcopy",
+"""
+'dcopy'
+D -> D'
+Creates a shallow copy of a dictionary D.
+""", @[("D", tDict)]):
+  s.push(newDictionary(s.pop().dictv.copy()))
 
 addF("begin",
 """
@@ -922,7 +1044,7 @@ addF("end",
 ->
 Closes the last opened dictionary.
 """, @[]):
-  discard s.dend()
+  discard s.dend(ps)
 
 addF("this",
 """
@@ -1067,12 +1189,8 @@ Shows the symbols in each dictionary.
 } forall
 pop"""
 
-# Misc operators
 
-let
-  trueSingleton = newBool(true)
-  falseSingleton = newBool(false)
-  nullSingleton = newNull()
+# Misc operators
 
 addV("null",
 """
@@ -1106,7 +1224,7 @@ Pushes a procedure P onto the defer stack, which is executed when the 'end' oper
 """, @[("P", tProcedure)]):
   let p = s.pop()
 
-  deferred[^1].add(p)
+  ps.deferred[^1].add(p)
 
 addF("throw",
 """
@@ -1126,7 +1244,7 @@ Calls a procedure P and returns null if the procedure exited successfully, or a 
   let p = s.pop()
 
   try:
-    p.run(sptr, r, deferred)
+    p.run(sptr, ps)
     s.push(nullSingleton)
   except PgError as e:
     s.push(newString(e.msg))

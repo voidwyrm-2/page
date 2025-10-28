@@ -38,6 +38,13 @@ func dbgLit*(node: Node): string =
     of nProc:
       "{" & node.nodes.mapIt(it.dbgLit).join(" ") & "}"
 
+func trace*(node: Node): string =
+  case node.typ
+  of nWord, nSymbol, nString, nInteger, nReal:
+    node.tok.trace()
+  of nList, nProc:
+    node.anchor.trace()
+
 proc `$`*(node: Node): string =
   result = "(" & $(type(node)) & ": "
 

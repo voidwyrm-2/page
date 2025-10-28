@@ -118,6 +118,7 @@ Writes a string S to a file object F and returns the amount written WS.
   let f = cast[File](fobj.dat)
 
   try:
-    f.write(str)
+    let b = f.writeBuffer(str[0].addr, str.len)
+    s.push(newInteger(b))
   except IoError as e:
     raise newPgError(e.msg)

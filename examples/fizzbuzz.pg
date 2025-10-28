@@ -24,8 +24,7 @@ end
     /a n 3 mod 0 eq def
     /b n 5 mod 0 eq def
 
-    [
-      {{(Fizzbuzz)=} a b and}
+    [ {{(Fizzbuzz)=} a b and}
       {{(Fizz)=} a}
       {{(Buzz)=} b}
     ]

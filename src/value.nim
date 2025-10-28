@@ -5,7 +5,8 @@ import std/[
   tables,
   strformat,
   sequtils,
-  macros
+  macros,
+  random
 ]
 
 import
@@ -13,7 +14,9 @@ import
   lexer,
   parser
 
-export general
+export
+  general,
+  random
 
 
 type
@@ -31,7 +34,13 @@ type
     tExtitem   = 0b1000000000
 
   Runner* = proc(nodes: seq[Node])
-  NativeProc* = proc(s: pointer, r: Runner, deferred: var seq[seq[Value]])
+
+  ProcState* = ref object
+    r*: Runner
+    rand*: Rand
+    deferred*: seq[seq[Value]]
+
+  NativeProc* = proc(s: pointer, ps: ProcState)
   ProcArgs* = seq[tuple[name: string, typ: Type]]
 
   Dict* = TableRef[string, Value]
@@ -270,12 +279,12 @@ func `[]=`*(self: Value, ind: int, val: Value) =
 proc ptype*(self: Value): ProcType =
   self.ptype
 
-proc run*(self: Value, s: pointer, r: Runner, deferred: var seq[seq[Value]]) =
+proc run*(self: Value, s: pointer, ps: ProcState) =
   if self.ptype == ptNative:
-    self.native(s, r, deferred)
+    self.native(s, ps)
   elif self.ptype == ptComposite:
     if self.nodes.len > 0:
-      r(self.nodes)
+      ps.r(self.nodes)
   elif self.ptype == ptLiteral:
     panic(fmt"Literal procedures cannot be executed via 'run'")
   else:
