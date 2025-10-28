@@ -19,19 +19,22 @@ template addS(name, doc: string, args: ProcArgs, body: string) =
   addS(lib, "io.pg", name, doc, args, body)
 
 
+const ObjectIdFile = "FILE"
+
+
 func newPgFile*(f: File, path: string): Value =
   result = newExtitem(cast[pointer](f))
   
   let fname = fmt"File object at '{path}'"
 
-  result.id = "File"
+  result.id = ObjectIdFile
   result.fmtf = func(_: pointer): string = fname
 
 
 addF("f-open",
 """
 'f-open'
-P M -> F
+P M -> FILE
 Opens a filepath P with the specified mode symbol M and returns its file object F.
 The valid modes are:
 - /r (read); opens the file for reading, throws an error if the file doesn't exist.
@@ -67,28 +70,28 @@ The valid modes are:
 addF("f-close",
 """
 'f-close'
-F ->
-Closes a file object F.
+FILE ->
+Closes a file object.
 Trying to use a file object after it was closed is undefined behavior.
 """, @[("F", tExtitem)]):
   let fobj = s.pop()
 
-  if fobj isnot "File":
+  if fobj isnot ObjectIdFile:
     raise newPgError("Given object is not a File object")
 
   let f = cast[File](fobj.dat)
 
   f.close()
 
-addF("f-read",
+addF("f-readall",
 """
 'f-readall'
-F -> S
-Reads everything from a file object F and returns the contents S.
+FILE -> str
+Reads everything from a file object and returns the contents as a string.
 """, @[("F", tExtitem)]):
   let fobj = s.pop()
 
-  if fobj isnot "File":
+  if fobj isnot ObjectIdFile:
     raise newPgError("Given object is not a File object")
 
   let f = cast[File](fobj.dat)
@@ -105,14 +108,14 @@ Reads everything from a file object F and returns the contents S.
 addF("f-write",
 """
 'f-write'
-F S -> WS
-Writes a string S to a file object F and returns the amount written WS.
+FILE S -> int
+Writes a string S to a file object and returns the amount written.
 """, @[("F", tExtitem), ("S", tString)]):
   let
     str = s.pop().strv
     fobj = s.pop()
 
-  if fobj isnot "File":
+  if fobj isnot ObjectIdFile:
     raise newPgError("Given object is not a File object")
 
   let f = cast[File](fobj.dat)

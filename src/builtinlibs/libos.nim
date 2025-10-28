@@ -29,7 +29,7 @@ let
 addV("stdin",
 """
 'stdin'
--> F
+-> FILE
 Returns the file object for STDIN.
 """):
   pgStdin
@@ -37,7 +37,7 @@ Returns the file object for STDIN.
 addV("stdout",
 """
 'stdout'
--> F
+-> FILE
 Returns the file object for STDOUT.
 """):
   pgStdout
@@ -45,7 +45,7 @@ Returns the file object for STDOUT.
 addV("stderr",
 """
 'stderr'
--> F
+-> FILE
 Returns the file object for STDERR.
 """):
   pgStderr
@@ -53,7 +53,7 @@ Returns the file object for STDERR.
 addF("exe",
 """
 'exe'
--> S
+-> str
 Returns the path to the interpreter executable.
 """, @[]):
   s.push(newString(s.g.exe))
@@ -61,7 +61,7 @@ Returns the path to the interpreter executable.
 addF("file",
 """
 'file'
--> S
+-> str
 Returns the path to the current file.
 """, @[]):
   s.push(newString(s.g.file))
@@ -69,7 +69,7 @@ Returns the path to the current file.
 addF("argv",
 """
 'argv'
--> L
+-> list<str>
 Returns the program arguments.
 """, @[]):
   s.push(newList(s.g.args.map(newString)))
@@ -77,7 +77,7 @@ Returns the program arguments.
 addF("env>",
 """
 'env>'
-S -> V
+S -> str
 Returns the value of an enviroment variable specified by a string S.
 If the enviroment variable doesn't exist, an empty string is returned;
 use 'env?>' to check if the enviroment is empty or doesn't exist.
@@ -91,7 +91,7 @@ use 'env?>' to check if the enviroment is empty or doesn't exist.
 addF("env?>",
 """
 'env?>'
-S -> V?
+S -> str?
 Returns the value of an enviroment variable specified by a string S.
 If the enviroment variable doesn't exist, null is returned.
 """, @[("S", tString)]):

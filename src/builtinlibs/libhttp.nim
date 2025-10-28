@@ -39,9 +39,9 @@ Initializes the HTTP client with the useragent UA and maximum redirects R.
 
 addF("req", """
 'req'
-U B T -> R
+U B T -> str
 Sends a request of a specified type T with a body B to a url U,
-then returns a response R.
+then returns its response as a string.
 """, @[("U", tString), ("B", tString), ("T", tSymbol)]):
   checkClient()
 
@@ -70,28 +70,28 @@ then returns a response R.
 
 addS("get", """
 'get'
-U -> R
+U -> str
 Sends a GET request to a URL U.
 """, @[("U", tString)]):
   "() /GET req"
 
 addS("post", """
 'post'
-U B -> R
+U B -> str
 Sends a POST request to a URL U with a body B.
 """, @[("U", tString)]):
   "/POST req"
 
 addS("put", """
 'put'
-U B -> R
+U B -> str
 Sends a PUT request to a URL U with a body B.
 """, @[("U", tString)]):
   "/POST req"
 
 addS("delete", """
 'delete'
-U -> R
+U -> str
 Sends a DELETE request to a URL U.
 """, @[("U", tString)]):
   "() /DELETE req"

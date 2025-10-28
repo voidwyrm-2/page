@@ -21,7 +21,7 @@ template addS(name, doc: string, args: ProcArgs, body: string) =
 addF("chars",
 """
 'chars'
-S -> L
+S -> list<str>
 Separates a string S into a list L of character strings.
 """, @[("S", tString)]):
   let str = s.pop().strv
@@ -36,7 +36,7 @@ Separates a string S into a list L of character strings.
 addF("split",
 """
 'split'
-S D -> L
+S D -> list<str>
 Separates a string S into a list L of parts by a delimiter D.
 """, @[("S", tString), ("D", tString)]):
   let
@@ -66,7 +66,7 @@ Replaces all occurences of Old with New in a string S.
 addF("joins",
 """
 'joins'
-L D -> S
+L D -> str
 Combines a list of strings L into a single string S, separated by delimiter D.
 """, @[("L", tList), ("D", tString)]):
   let
@@ -85,7 +85,7 @@ Combines a list of strings L into a single string S, separated by delimiter D.
 
 addS("join",
 """
-L -> S
+L -> str
 Joins a list of strings end to end.
 """, @[("L", tList)]):
   "() joins"

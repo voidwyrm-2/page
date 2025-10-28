@@ -190,7 +190,7 @@ proc literalize(s: State, nodes: seq[Node]): seq[Value] =
 addV("version",
 """
 'version'
--> string
+-> str
 Returns the current version of the language as a string.
 """):
   newString(langVersion)
@@ -198,7 +198,7 @@ Returns the current version of the language as a string.
 addV("product",
 """
 'product'
--> string
+-> str
 Returns the product name.
 This is included for compatibility with PostScript implementations.
 """):
@@ -222,10 +222,10 @@ Prints an extended help message to assist people with writing the language.
 addF("docof",
 """
 'docof'
-X -> doc of X
-Returns the docstring attached to a value X.
+V -> doc from V
+Returns the docstring attached to a value V.
 The returned docstring may be empty.
-""", @[("X", tAny)]):
+""", @[("V", tAny)]):
   let val = s.pop()
   
   s.push(newString(val.doc))
@@ -233,9 +233,9 @@ The returned docstring may be empty.
 addF("setdoc",
 """
 'setdoc'
-X S -> X'
-Sets the docstring of a value X to a string S.
-""", @[("X", tAny), ("S", tString)]):
+V S -> V'
+Sets the docstring of a value V to a string S.
+""", @[("V", tAny), ("S", tString)]):
   let
     str = s.pop().strv
     val = s.peek(^1)
@@ -245,8 +245,8 @@ Sets the docstring of a value X to a string S.
 addS("docofs",
 """
 'doc'
-S -> doc of X from S
-Returns the docstring attached to the value bound to a symbol S.
+S -> doc from V from S
+Returns the docstring attached to the value V bound to a symbol S.
 The returned docstring may be empty.
 """, @[("S", tSymbol)]):
   "load docof"
@@ -263,9 +263,9 @@ The returned docstring may be empty.
 addF("type",
 """
 'type'
-X -> typeof X
-Returns a symbol that describes the type of a value X.
-""", @[("X", tAny)]):
+V -> type of V
+Returns a symbol that describes the type of a value V.
+""", @[("V", tAny)]):
   let tstr = $s.pop().typ
 
   s.push(newSymbol(tstr))
@@ -273,8 +273,8 @@ Returns a symbol that describes the type of a value X.
 addF("import",
 """
 'import'
-P -> D
-Evaluates a path P as a Page file and returns the value D of the 'export' symbol inside of it.
+P -> value of /export in P
+Evaluates a path P as a Page file and returns the value of the 'export' symbol inside of it.
 
 If P ends with the .pg extension, P will be searched for in the current working directory,
 and an error will be thrown if it doesn't exist.
@@ -336,9 +336,9 @@ Exits out of the loop it's called inside of.
 addF("bind",
 """
 'bind'
-F -> F
-Replaces operator names in F with operator values
-""", @[("F", tProcedure)]):
+P -> P'
+Replaces operator names in a procedure P with operator values.
+""", @[("P", tProcedure)]):
   let f = s.pop()
 
   s.push(newProcedure(f, literalize(s, f.nodes)))
@@ -346,8 +346,8 @@ Replaces operator names in F with operator values
 addF("exec",
 """
 'exec'
-F ->
-Takes a function F and executes it.
+P ->
+Takes a function P and executes it.
 """, @[("F", tProcedure)]):
   let f = s.pop()
 
@@ -363,7 +363,7 @@ Takes a function F and executes it.
 addF("item?",
 """
 'item?'
--> B
+-> bool
 Returns true if the stack has items on it, false otherwise.
 """, @[]):
   s.push(newBool(s.stack.len > 0))
@@ -371,18 +371,18 @@ Returns true if the stack has items on it, false otherwise.
 addF("pop",
 """
 'pop'
-X ->
-Discards a value X.
-""", @[("X", tAny)]):
+V ->
+Discards a value V.
+""", @[("V", tAny)]):
   discard s.pop()
 
 addF("dup",
 """
 'dup'
-X -> X X
-Duplicates a value X.
-This is not a deep copy.
-""", @[("X", tAny)]):
+V -> V V
+Duplicates a value V.
+This does not create a deep copy.
+""", @[("V", tAny)]):
   let val = s.peek(^1)
   s.push(val)
 
@@ -391,12 +391,13 @@ addF("roll",
 'roll'
 ... C R -> ...
 Rotates the top C items on the stack up by R times.
+Positive R rotates to the right, negative R rotates to the left.
 """, @[("C", tInteger), ("R", tInteger)]):
   let
     roll = s.pop().intv
     count = s.pop().intv
 
-  if count == 0:
+  if count == 0 or roll == 0:
     return
 
   var expe = newProcArgs(count)
@@ -414,7 +415,9 @@ Rotates the top C items on the stack up by R times.
 
   var j = 0
 
-  copyMem(st[st.len() - count].addr, sl[0].addr, sl.len)
+  for i in st.len() - count ..< st.len():
+    s[i] = sl[j]
+    inc j
 
 addS("exch",
 """
@@ -574,7 +577,7 @@ Rounds a real R towards infinity.
 addF("rand",
 """
 'rand'
--> R
+-> real
 Generates a pseudo-random real.
 """, @[]):
   s.push(newReal(ps.rand.rand(1.0)))
@@ -585,36 +588,35 @@ Generates a pseudo-random real.
 addF("=",
 """
 '=' (format)
-X ->
-Takes in a value X and prints it in its formatted form.
+V ->
+Takes in a value V and prints it in its formatted form.
 This function will print any value as a literal, e.g. '(hello)' becomes hello, '/dog' becomes dog,
 and will not print lists in full.
-""", @[("X", tAny)]):
+""", @[("V", tAny)]):
   echo s.pop()
 
 addF("==",
 """
 '==' (debug)
-X ->
-Takes in a value X and prints it in its debug form.
-This function will print any value as it was in code form except functions,
-and will print lists in full.
-""", @[("X", tAny)]):
+V ->
+Takes in a value V and prints it in its debug form.
+This function will print any value as it roughly was in the original source code.
+""", @[("V", tAny)]):
   echo s.pop().debug()
 
 addF("print",
 """
 'print'
-X ->
-Takes in a value X and prints it in its formatted form without a newline.
-""", @[("X", tAny)]):
+V ->
+Takes in a value V and prints it in its formatted form without a newline.
+""", @[("V", tAny)]):
   stdout.write $s.pop()
   stdout.flushFile()
 
 addF("sprintf",
 """
 'sprintf'
-... S ->
+... S -> str
 Formats a string S and an amount of values akin to the sprintf of C.
 The only format specifiers are '%f' and '%d',
 which format a value in its formatted and debug forms, respectively.
@@ -673,7 +675,7 @@ which format a value in its formatted and debug forms, respectively.
 addS("printf",
 """
 'printf'
-S ->
+... S ->
 Formats with 'sprintf', then prints the result to stdout.
 Shorthand for 'sprintf print'
 """, @[("S", tString)]):
@@ -708,7 +710,7 @@ This function uses the same semantics as '=='.
 addF("readf",
 """
 'readf'
-P -> S
+P -> str
 Reads a path P and returns the resulting string S.
 """, @[("P", tString)]):
   let path = s.pop().strv
@@ -846,9 +848,9 @@ Executes P if B is true, otherwise executes P'.
 addS("null?",
 """
 'null?'
-X -> X == null
-Duplicates a value X, then returns true if X is null, and false otherwise.
-""", @[("X", tAny)]):
+V -> V == null
+Duplicates a value V, then returns true if X is null, and false otherwise.
+""", @[("V", tAny)]):
   "dup null eq"
 
 
@@ -935,8 +937,8 @@ Iterates over a list L, putting each item on the stack then executing a procedur
 addF("list",
 """
 'list'
-S -> L
-Creates a list D with a specified size S.
+S -> list[S]
+Creates a list L with a specified size S.
 """, @[("S", tInteger)]):
   let length = s.pop().intv
 
@@ -960,10 +962,10 @@ Negative indexes will index from the back of the list
 addF("put",
 """
 'put'
-L I X -> L[I] = X
+L I V -> L[I] = V
 Sets an index I of a list L to a value X.
 Negative indexes will index from the back of the list
-""", @[("L", tList), ("I", tInteger), ("X", tAny)]):
+""", @[("L", tList), ("I", tInteger), ("V", tAny)]):
   let
     val = s.pop()
     i = s.pop().intv
@@ -980,7 +982,7 @@ addF("def",
 """
 'def'
 S V ->
-Binds X to the symbol S inside the current dictionary.
+Binds a value V to a symbol S inside the current dictionary.
 """, @[("S", tSymbol), ("V", tAny)]):
   let
     val = s.pop()
@@ -1013,7 +1015,7 @@ trycatch"""
 addF("dict",
 """
 'dict'
-S -> D
+S -> dictionary[S]
 Creates a dictionary D with an initial size S.
 """, @[("S", tInteger)]):
   let size = s.pop().intv
@@ -1049,7 +1051,7 @@ Closes the last opened dictionary.
 addF("this",
 """
 'this'
-->
+-> dictionary
 Returns the last opened dictionary.
 """, @[]):
   s.push(newDictionary(s.dicts[^1]))
@@ -1104,10 +1106,10 @@ Already existing symbols will be overwritten.
 addS("scoped",
 """
 'scoped'
-D F ->
-Takes a dictionary D, opens D, executes F, then closes D.
+D P ->
+Takes a dictionary D, opens D, executes P, then closes D.
 Acts as shorthand for 'begin ... end'.
-""", @[("D", tDict), ("F", tProcedure)]):
+""", @[("D", tDict), ("P", tProcedure)]):
   "exch begin exec end"
 
 addS(".",
@@ -1129,7 +1131,7 @@ end"""
 addF("symbols",
 """
 'symbols'
--> L
+-> list<symbol>
 Returns a list of the symbols inside the last opened dictionary.
 """, @[]):
   let symbols = s.symbols
@@ -1143,7 +1145,7 @@ Returns a list of the symbols inside the last opened dictionary.
 addF("rsymbols",
 """
 'rsymbols'
--> L
+-> list<list<symbol>>
 Returns a list of lists of the symbols in each dictionary.
 """, @[]):
   let dicts = s.dicts
@@ -1220,7 +1222,9 @@ addF("defer",
 """
 'defer'
 P ->
-Pushes a procedure P onto the defer stack, which is executed when the 'end' operator is used, when an error is thrown, or at the end of the program.
+Pushes a procedure P onto the defer stack,
+which is executed when the 'end' operator is used,
+when an error is thrown, or at the end of the program.
 """, @[("P", tProcedure)]):
   let p = s.pop()
 
@@ -1238,8 +1242,9 @@ Throws an error with a string message Msg.
 addF("try",
 """
 'try'
-P -> S?
-Calls a procedure P and returns null if the procedure exited successfully, or a string if the procedure threw an error.
+P -> str?
+Calls a procedure P and returns null if the procedure exited successfully,
+or a string if the procedure threw an error.
 """, @[("P", tProcedure)]):
   let p = s.pop()
 
@@ -1265,7 +1270,7 @@ ifelse"""
 addF("length",
 """
 'length'
-X -> len of X
+X -> integer
 Gets the length of a value X
 """, @[("X", tString or tList or tDict)]):
   let length = s.pop().len()
@@ -1275,7 +1280,7 @@ Gets the length of a value X
 addF("cvi",
 """
 'cvi'
-S -> I
+S -> integer
 "Convert to Integer"
 Converts a string S into an integer I.
 An error is thrown if S is not representable as an integer.
@@ -1293,7 +1298,7 @@ An error is thrown if S is not representable as an integer.
 addF("cvr",
 """
 'cvr'
-S -> R
+S -> real
 "Convert to Real"
 Converts a string S into a real R.
 An error is thrown if S is not representable as a real.
@@ -1311,7 +1316,7 @@ An error is thrown if S is not representable as a real.
 addF("cvs",
 """
 'cvs'
-S -> S'
+S -> symbol
 "Convert to Symbol"
 Converts a string S into a symbol S'.
 The allowed characters are unrestricted.

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.30.12
+
+- The help messages have been updated as they contained outdated information
+- The comments in the 'fib' example have been updated as Page is no longer a PostScript implementation
+- Updated the docstrings of many builtin operators
+
 ## 0.30.11
 
 - (Fix) 'f-write' didn't return the number of bytes written

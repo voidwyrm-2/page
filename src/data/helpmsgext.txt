@@ -44,9 +44,9 @@ PostScript has 8 datatypes.
   although `(` and `)` have to be escaped with `\`.
   Unlike other languages, strings in PostScript are created with parentheses.
   Example:
-   (.sage)(Cause you're a natural) (.cyan)= (.comment)% 'Cause you're a natural'
-   (.sage)(You have to be so cold) (.cyan)== (.comment)% '(You have to be so cold)'
-   (.sage)(10) (.magenta)stn (.orange)40 (.magenta)add (.cyan)== (.comment)% '50'(.reset)
+   (.sage)(Wish we could turn back time) (.cyan)= (.comment)% 'Wish we could turn back time'
+   (.sage)(To the good ol' days) (.cyan)== (.comment)% 'To the good ol' days'
+   (.sage)(10) (.magenta)stn (.orange)40 (.cyan)add == (.comment)% '50'(.reset)
 
 - (.header)symbols(.reset)
   A symbol is an abstract 'name' or 'descriptor',
@@ -61,12 +61,12 @@ PostScript has 8 datatypes.
    (.yellow)/catdog (.sage)(catdog) (.cyan)eq = (.comment)% 'false'(.reset)
 
 - (.header)lists(.reset)
-  A list, or array, is a collection of values, which can be any length.
-  Lists are created with brackets or with the `(.cyan)array(.reset)` function.
+  A list, is a collection of values, which can be any length.
+  Lists are created with brackets or with the `(.cyan)list(.reset)` function.
   Example:
    (.cyan)[(.yellow)/a /b /c /d /e /f(.cyan)] == (.comment)% '[/a /b /c /d /e /f]'
-   (.orange)0 (.cyan)array == (.comment)% '[]'
-   (.orange)3 (.cyan)array == (.comment)% '[null null null]'(.reset)
+   (.orange)0 (.cyan)list == (.comment)% '[]'
+   (.orange)3 (.cyan)list == (.comment)% '[null null null]'(.reset)
 
 - (.header)dictionaries(.reset)
   A dictionary, or dict, is a collection of values, like a list, but each value attached to a key

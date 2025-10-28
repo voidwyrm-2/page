@@ -2,14 +2,14 @@ Page is a programming language inspired by PostScript,
 a programming language created by Adobe to generate graphics for use in generating PDFs and printing,
 similarly to TeX and LaTeX.
 
-It's still used (albeit rarely) today (as of Sep 11, 2025).
+PostScript is still used (albeit rarely) today (Oct 28, 2025).
 
 PostScript (and Page) are stack-based languages,
 so instead of `1 + 1`, expressions are written as `1 1 +`,
 where `1` is pushed onto the stack, then another `1` is is pushed onto the stack. then `+` pops them off,
 adds them together, and pushes the result (2, in this case)
 
-Additionally, PostScript's math operators use names instead of symbols,
+Additionally, the math operators of PostScript and Page use names instead of symbols,
 so '+' is `(.cyan)add(.reset)`, '-' is `(.cyan)sub(.reset)`, etc
 
 

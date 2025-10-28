@@ -1,5 +1,5 @@
 % 'over', a common stack language operation,
-% isn't in PostScript because 'roll' implements part of its functionality
+% isn't in Page because 'roll' implements part of its functionality
 /over {
   % A B
   exch dup % B A A
@@ -19,10 +19,10 @@
       i 1 le % If counter is less than 1, exit loop
       {exit}
       if
-    } loop % loops in PostScript don't have their own stack
+    } loop % loops in Page don't have their own stack
   ]
 end
-% Dictionaries act as scopes in PostScript,
+% Dictionaries act as scopes in Page,
 % 'begin' pushes a dictionary onto the dictionary stack,
 % 'end' pops one off,
 % the dictionary at the top of the stack is prioritized for symbol searching.

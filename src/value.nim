@@ -21,7 +21,7 @@ export
 
 type
   Type* {.size: 2.} = enum
-    tUnused   = 0b0,
+    tInvalid    = 0b0,
     tNull      = 0b1,
     tBool      = 0b10,
     tSymbol    = 0b100,
@@ -53,7 +53,7 @@ type
   Value* = ref object
     doc*: string
     case typ: Type
-    of tUnused:
+    of tInvalid:
       discard
     of tNull:
       discard
@@ -91,7 +91,7 @@ func `and`*(a, b: Type): Type =
   cast[Type](cast[uint16](a) and cast[uint16](b))
 
 func `is`*(a: Value, b: Type): bool =
-  (a.typ and b) != tUnused
+  (a.typ and b) != tInvalid
 
 func `isnot`*(a: Value, b: Type): bool =
   not (a is b)
@@ -160,7 +160,7 @@ func `$`*(typ: Type): string =
 
     for i in 0..<11:
       let t = typ and cast[Type](1 shl i)
-      if t != tUnused:
+      if t != tInvalid:
         types.add(t)
 
     if types.len == 2:
