@@ -30,6 +30,13 @@ func newPgFile*(f: File, path: string): Value =
   result.id = ObjectIdFile
   result.fmtf = func(_: pointer): string = fname
 
+func checkPgFile*(val: Value) =
+  if val.typ != tExtitem:
+    panic("'val' is not an Extitem")
+
+  if val isnot ObjectIdFile:
+    raise newPgError("Given object is not a File object")
+
 
 addF("f-open",
 """
@@ -43,13 +50,16 @@ The valid modes are:
 - /a (append); opens the file for writing and appends to the end of the file when written to, throws an error if the file doesn't exist.
 - /c (create); opens the file for reading and writing, creates the file if it doesn't exist.
 """, @[("P", tString), ("M", tSymbol)]):
-  let
-    modeName = s.pop().strv
-    path = s.pop().strv
+  let modeName = s.pop().strv
 
   var
+    path = s.pop().strv
+
     mode: FileMode
     f: File
+
+  if path.len > 0 and path[0] != '/':
+    path = s.g.cwd / path
 
   case modeName
   of "r":
@@ -73,31 +83,62 @@ addF("f-close",
 FILE ->
 Closes a file object.
 Trying to use a file object after it was closed is undefined behavior.
-""", @[("F", tExtitem)]):
+""", @[("FILE", tExtitem)]):
   let fobj = s.pop()
 
-  if fobj isnot ObjectIdFile:
-    raise newPgError("Given object is not a File object")
+  fobj.checkPgFile()
 
   let f = cast[File](fobj.dat)
 
   f.close()
+
+addF("f-eof?",
+"""
+'f-eof?'
+FILE -> bool
+Returns true if a file has reached EOF; false otherwise.
+""", @[("FILE", tExtitem)]):
+  let fobj = s.pop()
+
+  fobj.checkPgFile()
+
+  let f = cast[File](fobj.dat)
+
+  s.push(if f.endOfFile(): trueSingleton else: falseSingleton)
+
+addF("f-readbyte",
+"""
+'f-readbyte'
+FILE -> int
+Reads a byte from a file and returns it as an integer.
+""", @[("FILE", tExtitem)]):
+  let fobj = s.pop()
+
+  fobj.checkPgFile()
+
+  let f = cast[File](fobj.dat)
+
+  var b: byte
+  try:
+    b = f.readChar().byte
+  except IoError as e:
+    raise newPgError(e.msg)
+
+  s.push(newInteger(b.int))
 
 addF("f-readall",
 """
 'f-readall'
 FILE -> str
 Reads everything from a file object and returns the contents as a string.
-""", @[("F", tExtitem)]):
+""", @[("FILE", tExtitem)]):
   let fobj = s.pop()
 
-  if fobj isnot ObjectIdFile:
-    raise newPgError("Given object is not a File object")
+  fobj.checkPgFile()
 
   let f = cast[File](fobj.dat)
 
   var content: string
-
   try:
     content = f.readAll()
   except IoError as e:
@@ -110,13 +151,12 @@ addF("f-write",
 'f-write'
 FILE S -> int
 Writes a string S to a file object and returns the amount written.
-""", @[("F", tExtitem), ("S", tString)]):
+""", @[("FILE", tExtitem), ("S", tString)]):
   let
     str = s.pop().strv
     fobj = s.pop()
 
-  if fobj isnot ObjectIdFile:
-    raise newPgError("Given object is not a File object")
+  fobj.checkPgFile()
 
   let f = cast[File](fobj.dat)
 

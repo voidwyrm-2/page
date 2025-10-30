@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.31.0
+
+- File imports are now cached
+- Relative import and 'f-open' paths are now relative to the executed file's directory, not the shell's directory
+- Added the '2item?', '<<', '>>', and 'undef' builtin operators
+- Added the '>cmd' and 'cmd' operators to the 'os' internal library
+- Added the 'f-eof' and 'f-readbyte' operators to the 'io' internal library
+- Added the 'json' internal library with the 'decodes', 'decodef', 'encodes', and 'encodef' operators
+
 ## 0.30.12
 
 - The help messages have been updated as they contained outdated information
@@ -25,8 +34,8 @@
 
 - Type unions are no longer stored as sets
 - Renamed src/std/testing.nps to src/std/testing.pg
-- Added the 'os' builtin library with the 'stderr', 'stdout', and 'stdin' symbols
-- Added the 'io' builtin library with the 'f-write', 'f-open', 'f-close', and 'f-read' operators
+- Added the 'os' internal library with the 'stderr', 'stdout', and 'stdin' symbols
+- Added the 'io' internal library with the 'f-write', 'f-open', 'f-close', and 'f-read' operators
 - Added the ExtItem datatype, which represents a pointer to abstract data
 
 
@@ -101,7 +110,7 @@
 
 ## 0.20.0
 
-- Added the 'http' builtin library with the 'init', 'req', 'get', 'post', 'put', and 'delete' operators
+- Added the 'http' internal library with the 'init', 'req', 'get', 'post', 'put', and 'delete' operators
 - Function argument type errors will now show parameter
 - (Fix) using math operators on a number and a non-number caused infinite recursion
 - Added the 'filter' example
@@ -304,7 +313,7 @@
 
 - (Fix) The lexer would flag '!', '"', '#', '$', '%', and '~' as illegal characters
 - Added the 'scoped' and 'symbols' builtin symbols
-- Added the '~strings' builtin library, containing the symbol 'chars'
+- Added the '~strings' internal library, containing the symbol 'chars'
 
 
 ## 0.5.5

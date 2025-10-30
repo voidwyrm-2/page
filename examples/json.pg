@@ -1,0 +1,40 @@
+/fmtd {
+begin
+  symbols
+  { dup
+    load
+    dup type /Dict eq
+    {exch (%d:\n) printf fmtd}
+    {(%d: %d\n) printf}
+    ifelse
+  } forall 
+end
+} def
+
+(json) import begin
+
+<<
+  /Uzi (Has sick-as-hell railgun)
+  /N   (Loves dogs)
+  /V   (Secretly very nice)
+  /J   (Sided with the enemy)
+>>
+
+encodes = (\n)=
+
+({
+  "Uzi": "Has sick-as-hell railgun",
+  "N": "Loves dogs",
+  "V": "Secretly very nice",
+  "J": "Sided with the enemy"
+}) decodes
+
+fmtd (\n)=
+
+
+(io) import begin
+(data.json) /r f-open
+
+decodef
+
+fmtd

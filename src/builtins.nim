@@ -11,6 +11,8 @@ import std/[
 
 from system/nimscript import nil
 
+import pkg/checksums/md5
+
 import
   pgenv,
   lexer,
@@ -19,7 +21,8 @@ import
     common,
     libstrings,
     libio,
-    libos
+    libos,
+    libjson
   ]
 
 when not defined(nohttp):
@@ -108,7 +111,8 @@ let defaultSearchPaths = [
 let internalPackageRegistry = newTable[string, (Dict, string)]([
   ("strings", (libstrings.lib, "'strings'\nOperators related to string handling and processing.")),
   ("io", (libio.lib, "'io'\nOperators related to input and output.")),
-  ("os", (libos.lib, "'os'\nOperators for interacting with the operating system."))
+  ("os", (libos.lib, "'os'\nOperators for interacting with the operating system.")),
+  ("json", (libjson.lib, "'json'\nOperators for decoding and encoding JSON."))
 ])
 
 when not defined(nohttp):
@@ -147,18 +151,32 @@ proc importFile*(s: State, path: string): Value =
     if not found:
       raise newPgError(fmt"'{p}' could not be found in any search path:" & "\n Internal package registry\n " & packageSearchPaths.join("\n "))
 
+  if p.len > 0 and p[0] != '/':
+    p = s.g.cwd / p
+
   let content =
     try:
       p.readFile()
     except IOError as e:
       raise newPgError(fmt"Could not read from '{p}':" & "\n  " & e.msg)
 
+  let 
+    cache = s.g.importCache
+    hash = toMD5(content)
+
+  if cache.hasKey(p) and cache[p].hash == hash:
+    return newDictionary(cache[p].val.dictv.copy())
+
   let substate = s.codeEval(newGlobalState(s.g.exe, p, @[]), p, content)
 
   if not substate.has("export"):
     raise newPgError("Symbol 'export' must be defined in imported modules")
 
-  return substate.get("export")
+  let expo = substate.get("export")
+
+  cache[p] = (hash, expo)
+
+  return expo
 
 
 proc literalize(s: State, nodes: seq[Node]): seq[Value] =
@@ -364,9 +382,17 @@ addF("item?",
 """
 'item?'
 -> bool
-Returns true if the stack has items on it, false otherwise.
+Returns true if the stack has at least one item on it, false otherwise.
 """, @[]):
-  s.push(newBool(s.stack.len > 0))
+  s.push(if s.stack.len > 0: trueSingleton else: falseSingleton)
+
+addF("2item?",
+"""
+'item?'
+-> bool
+Returns true if the stack has at least two items on it, false otherwise.
+""", @[]):
+  s.push(if s.stack.len > 1: trueSingleton else: falseSingleton)
 
 addF("pop",
 """
@@ -978,6 +1004,52 @@ Negative indexes will index from the back of the list
 
 # Dict operators
 
+addV("<<",
+"""
+'<<'
+-> '<<' mark
+Begins a dictionary literal.
+"""):
+  newSymbol("/<</")
+
+addS(">>",
+"""
+'>>'
+<< ... S V -> dictionary
+Collects key/value pairs until '<<', then returns resulting dictionary.
+""", @[]):
+  """
+1 dict begin
+  /kverr {(Expected a symbol to complete the key value pair) throw} def
+5 dict begin
+  {
+    item? not
+    {(Expected '<<' to close dictionary literal) throw}
+    if
+
+    dup << eq
+    {pop exit}
+    if
+
+    2item? not
+    /kverr load
+    if
+
+    exch
+    dup << eq
+    exch dup type /Symbol ne
+    exch rot or
+    /kverr load
+    if
+
+    exch
+    def
+  } loop
+
+  this
+end
+end"""
+
 addF("def",
 """
 'def'
@@ -986,9 +1058,26 @@ Binds a value V to a symbol S inside the current dictionary.
 """, @[("S", tSymbol), ("V", tAny)]):
   let
     val = s.pop()
-    sym = s.pop().strv
+    name = s.pop().strv
   
-  s.set(sym, val)
+  s.set(name, val)
+
+addF("undef",
+"""
+'undef'
+S ->
+Binds symbol S inside the current dictionary.
+""", @[("S", tSymbol)]):
+  let name = s.pop().strv
+  discard s.unset(name)
+
+addS("undef",
+"""
+'undef'
+S ->
+Binds symbol S inside the current dictionary.
+""", @[("S", tSymbol)]):
+  ""
 
 addF("load",
 """
@@ -997,7 +1086,6 @@ S -> V
 Retrieves the value bound to a symbol S.
 """, @[("S", tSymbol)]):
   let name = s.pop().strv
-
   s.push(s.get(name))
 
 addS("load?",
@@ -1007,10 +1095,7 @@ S -> V?
 Retrieves the value bound to a symbol S.
 If that symbol doesn't have a bound value, null is returned.
 """, @[("S", tSymbol)]):
-  """
-{load}
-{pop pop null}
-trycatch"""
+  "{load} {pop pop null} trycatch"
 
 addF("dict",
 """
@@ -1018,9 +1103,9 @@ addF("dict",
 S -> dictionary[S]
 Creates a dictionary D with an initial size S.
 """, @[("S", tInteger)]):
-  let size = s.pop().intv
-
-  let d = newDictionary(newDict(int(size)))
+  let
+    size = s.pop().intv
+    d = newDictionary(newDict(int(size)))
 
   s.push(d)
 
@@ -1030,7 +1115,8 @@ addF("dcopy",
 D -> D'
 Creates a shallow copy of a dictionary D.
 """, @[("D", tDict)]):
-  s.push(newDictionary(s.pop().dictv.copy()))
+  let d = s.pop().dictv
+  s.push(newDictionary(d.copy()))
 
 addF("begin",
 """
@@ -1124,7 +1210,7 @@ begin
   load
   dup type
   /Procedure eq
-  {exec} 
+  {exec}
   if
 end"""
 
@@ -1185,8 +1271,7 @@ Shows the symbols in each dictionary.
   (%f:\n) printf
   exch
 
-  {( ) printf =}
-  forall
+  {( ) printf =} forall
   1 add
 } forall
 pop"""
@@ -1273,7 +1358,7 @@ addF("length",
 X -> integer
 Gets the length of a value X
 """, @[("X", tString or tList or tDict)]):
-  let length = s.pop().len()
+  let length = s.pop().len
 
   s.push(newInteger(length))
 

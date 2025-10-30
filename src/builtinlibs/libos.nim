@@ -1,6 +1,7 @@
 import std/[
   os,
-  sequtils
+  sequtils,
+  osproc
 ]
 
 import
@@ -97,6 +98,7 @@ If the enviroment variable doesn't exist, null is returned.
 """, @[("S", tString)]):
   let
     k = s.pop().strv
+
     ev =
       if existsEnv(k):
         newString(getEnv(k))
@@ -119,3 +121,30 @@ Sets an enviroment variable specified by a string S to a string value V.
     putEnv(k, v)
   except OSError as e:
     raise newPgError(e.msg)
+
+addF(">cmd",
+"""
+'>cmd'
+S In -> str int
+Executes a shell command with a string In as stdin, then returns the output and exit code of the process.
+""", @[("S", tString), ("In", tString)]):
+  let
+    inp = s.pop().strv
+    cmd = s.pop().strv
+
+  let (outp, code) =
+    try:
+      execCmdEx(cmd, input=inp)
+    except IOError as e:
+      raise newPgError(e.msg)
+
+  s.push(newString(outp))
+  s.push(newInteger(code))
+
+addS("cmd",
+"""
+'cmd'
+S -> str int
+Executes a shell command, then returns the output and exit code of the process.
+""", @[("S", tString)]):
+  "() >cmd"

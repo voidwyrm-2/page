@@ -4,6 +4,8 @@ import std/[
   strformat
 ]
 
+import pkg/checksums/md5
+
 import
   general,
   value
@@ -14,9 +16,12 @@ export
 
 
 type
+  ImportCacheEntry* = tuple[hash: MD5Digest, val: Value]
+
   GlobalState* = ref object
-    exe*, file*: string
+    exe*, cwd*, file*: string
     args*: seq[string]
+    importCache*: TableRef[string, ImportCacheEntry]
 
   State* = ref object
     g*: GlobalState
@@ -48,6 +53,7 @@ func newGlobalState*(exe, file: string, args: seq[string]): GlobalState =
   result.exe = exe
   result.file = file
   result.args = args
+  result.importCache = newTable[string, ImportCacheEntry](0)
 
 
 func newState*(dictMin: int, dicts: varargs[Dict]): State =
@@ -94,7 +100,7 @@ func has*(self: State, name: string): bool =
     if d.hasKey(name):
       return true
 
-func set*(self: State, name: string, val: Value) =
+proc set*(self: State, name: string, val: Value) =
   self.dicts[^1][name] = val
 
 func get*(self: State, name: string): Value =
@@ -103,6 +109,11 @@ func get*(self: State, name: string): Value =
       return d[name]
 
   raise newPgError(fmt"Undefined symbol '{name}'")
+
+proc unset*(self: State, name: string): bool =
+  let d = self.dicts[^1]
+  result = d.hasKey(name)
+  d.del(name)
 
 proc push*(self: State, val: Value) =
   self.stack.add(val)

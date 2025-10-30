@@ -72,6 +72,7 @@ proc addExtras(self: Cmd) =
   self.addp "noise-0.1.10-c0cbecd0917a5c13cab331cb959a5280acd3401e"
   self.addp "regex-0.26.3-4d24e7d7441137cd202e16f2359a5807ddbdc31f"
   self.addp "unicodedb-0.13.2-739102d885d99bb4571b1955f5f12aee423c935b"
+  self.addp "checksums-0.2.1-d3c7a1d0c0dee8fa089bd7f4d474e005877b608a"
 
 proc run(self: Cmd) =
   self.checkEnv()
