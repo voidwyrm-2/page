@@ -103,9 +103,9 @@ proc exec(self: Interpreter, n: Node) =
       logger.logdv("Word is not a function")
       self.state.push(v)
   of nDot:
-    let v = self.state.nestedGet(n)
+    let (literal, v) = self.state.nestedGet(n)
 
-    if v.typ == tProcedure:
+    if v.typ == tProcedure and not literal:
       self.state.check(v.args)
 
       let ps = self.pstate

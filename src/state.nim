@@ -24,6 +24,7 @@ type
     exe*, cwd*, file*: string
     args*: seq[string]
     importCache*: TableRef[string, ImportCacheEntry]
+    cleanup*: seq[proc()]
 
   State* = ref object
     g*: GlobalState
@@ -73,6 +74,10 @@ func newState*(dictMin: int, dicts: varargs[Dict]): State =
     result.dicts.add(newDict(0))
     result.deferred.add(@[])
 
+proc doCleanup*(self: State) =
+  for f in self.g.cleanup:
+    f()
+
 func dicts*(self: State): seq[Dict] =
   self.dicts
 
@@ -117,13 +122,13 @@ proc unset*(self: State, name: string): bool =
   result = d.hasKey(name)
   d.del(name)
 
-proc nestedGet*(self: State, node: Node): Value =
+proc nestedGet*(self: State, node: Node): tuple[literal: bool, val: Value] =
   if node.typ != nDot:
     panic("Node is not nDot")
 
   let d =
     if node.left.typ == nDot:
-      self.nestedGet(node.left)
+      self.nestedGet(node.left).val
     else:
       self.get(node.left.tok.lit)
 
@@ -143,7 +148,7 @@ proc nestedGet*(self: State, node: Node): Value =
     e.addTrace(node.right.trace())
     raise e
 
-  result = t[name]
+  result = (node.right.typ == nSymbol, t[name])
 
 proc push*(self: State, val: Value) =
   self.stack.add(val)

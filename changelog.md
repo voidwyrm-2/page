@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.33.0
+
+- Added the 'alpha?', 'digit?', 'alphadigit?', 'sb-init', 'sb-addstr', 'sb-addbyte', and 'sb-build' operators to the 'strings' internal library
+
 ## 0.32.0
 
 - Page now has dot notation for accessing items inside of dictionaries conveniently

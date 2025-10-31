@@ -175,3 +175,7 @@ macro select*(val, cases: untyped): untyped =
     ifcases.add((cond, n[2]))
 
   result = newIfStmt(ifcases)
+
+
+template allocZ*(t: typedesc): untyped =
+  cast[ptr t](alloc0(sizeof(t)))

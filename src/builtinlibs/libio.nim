@@ -19,22 +19,22 @@ template addS(name, doc: string, args: ProcArgs, body: string) =
   addS(lib, "io.pg", name, doc, args, body)
 
 
-const ObjectIdFile = "FILE"
+const objectIdFile = "FILE"
 
 
 func newPgFile*(f: File, path: string): Value =
-  result = newExtitem(cast[pointer](f))
+  result = newExtitem(cast[uint64](f))
   
   let fname = fmt"File object at '{path}'"
 
-  result.id = ObjectIdFile
-  result.fmtf = func(_: pointer): string = fname
+  result.id = objectIdFile
+  result.fmtf = proc(_: uint64): string = fname
 
 func checkPgFile*(val: Value) =
   if val.typ != tExtitem:
     panic("'val' is not an Extitem")
 
-  if val isnot ObjectIdFile:
+  if val isnot objectIdFile:
     raise newPgError("Given object is not a File object")
 
 

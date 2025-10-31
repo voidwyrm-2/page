@@ -74,6 +74,17 @@ proc literalize*(s: State, nodes: seq[Node]): seq[Value] =
       let n = node.copy()
 
       result[i] = newProcedure(@[], proc(sptr: pointer, ps: ProcState) = 
-        let s = cast[State](sptr)
-        s.push(s.nestedGet(n))
+        let
+          s = cast[State](sptr)
+          (literal, v) = s.nestedGet(n)
+
+        if v.typ == tProcedure and not literal:
+          s.check(v.args)
+
+          if v.ptype == ptLiteral:
+            evalValues(s, ps, v.values)
+          else:
+            v.run(sptr, ps)
+        else:
+          s.push(v)
       )

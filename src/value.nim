@@ -81,8 +81,8 @@ type
         values: seq[Value]
     of tExtitem:
       id*: string
-      dat*: pointer
-      fmtf*: proc(dat: pointer): string {.noSideEffect.}
+      dat*: uint64
+      fmtf*: proc(obj: uint64): string {.noSideEffect.}
 
 func `or`*(a, b: Type): Type =
   cast[Type](cast[uint16](a) or cast[uint16](b))
@@ -229,7 +229,7 @@ proc newProcedure*(args: ProcArgs, file, text: string): Value =
 proc newProcedure*(original: Value, values: seq[Value]): Value =
   Value(typ: tProcedure, args: original.args, ptype: ptLiteral, values: values)
 
-proc newExtitem*(dat: pointer): Value =
+proc newExtitem*(dat: uint64): Value =
   Value(typ: tExtitem, dat: dat)
 
 

@@ -52,6 +52,8 @@ proc repl(exe: string, args: seq[string]) =
 
   i.state.g = newGlobalState(exe, "repl", args)
 
+  defer: i.state.doCleanup()
+
   noise.setPrompt(basePrompt)
 
   while true:
@@ -153,6 +155,8 @@ proc main(args: seq[string]) =
 
     i.state.g = newGlobalState(getAppFilename(), "exec", leftover[1..^1])
 
+    defer: i.state.doCleanup()
+
     try:
       i.exec(nodes)
     except PgQuitError as e:
@@ -199,6 +203,8 @@ proc main(args: seq[string]) =
 
   i.state.g = newGlobalState(getAppFilename(), leftover[0].absolutePath(), leftover[1..^1])
   i.state.g.cwd = leftover[0].absolutePath().parentDir()
+
+  defer: i.state.doCleanup()
 
   try:
     i.exec(nodes)

@@ -1,6 +1,8 @@
 import std/[
   strutils,
-  enumerate
+  enumerate,
+  strformat,
+  sequtils
 ]
 
 import common
@@ -93,7 +95,7 @@ Joins a list of strings end to end.
 addF("lower",
 """
 S -> S'
-Sets all the ASCII letters of a string S to lowercase and returns the resulting string S'.
+Sets all the ASCII letters of a string to lowercase and returns the resulting string.
 """, @[("S", tString)]):
   let str = s.pop().strv
 
@@ -102,8 +104,118 @@ Sets all the ASCII letters of a string S to lowercase and returns the resulting 
 addF("upper",
 """
 S -> S'
-Sets all the ASCII letters of a string S to uppercase and returns the resulting string S'.
+Sets all the ASCII letters of a string to uppercase and returns the resulting string.
 """, @[("S", tString)]):
   let str = s.pop().strv
 
   s.push(newString(str.toUpperAscii()))
+
+addF("alpha?",
+"""
+S -> bool
+Returns true if a string only contains characters a-z and A-Z.
+""", @[("S", tString)]):
+  let str = s.pop().strv
+
+  s.push(newBool(str.all(isAlphaAscii)))
+
+addF("digit?",
+"""
+S -> bool
+Returns true if a string only contains characters 0-9.
+""", @[("S", tString)]):
+  let str = s.pop().strv
+
+  s.push(newBool(str.all(isDigit)))
+
+addS("alphadigit?",
+"""
+S -> bool
+Returns true if a string only contains characters a-z, A-Z, and 0-9.
+""", @[("S", tString)]):
+  "dup alpha? exch digit? or"
+
+
+# string builder operators
+
+const objectIdStringBuilder = "StringBuilder"
+
+func checkStringBuilder*(val: Value) =
+  if val.typ != tExtitem:
+    panic("'val' is not an Extitem")
+
+  if val isnot objectIdStringBuilder:
+    raise newPgError("Given object is not a StringBuilder object")
+
+addF("sb-init",
+"""
+'sb-init'
+S -> SB
+Returns a new StringBuilder with a specified size S.
+""", @[("S", tInteger)]):
+  let
+    size = s.pop().intv
+
+    sbPtr = allocZ(seq[char])
+    sbobj = newExtitem(cast[uint64](sbPtr))
+
+  s.g.cleanup.add(proc() = dealloc(sbPtr))
+
+  sbPtr[] = newSeqOfCap[char](size)
+
+  sbobj.id = objectIdStringBuilder
+  sbobj.fmtf = func(obj: uint64): string =
+    let sb = cast[ptr seq[char]](sbobj.dat)
+    fmt"StringBuilder of cap {sb[].capacity} and length {sb[].len}"
+  
+  s.push(sbobj)
+
+addF("sb-addstr",
+"""
+'sb-addstr'
+S SB ->
+Appends a string S to the buffer of a StringBuilder SB.
+""", @[("S", tString), ("SB", tExtitem)]):
+  let
+    sbobj = s.pop()
+    str = s.pop().strv
+
+  sbobj.checkStringBuilder()
+
+  let sb = cast[ptr seq[char]](sbobj.dat)
+
+  sb[].add(str)
+
+addF("sb-addbyte",
+"""
+'sb-addbyte'
+B SB ->
+Appends an integer B as a byte to the buffer of a StringBuilder SB.
+An error is thrown if B is not representable by a byte.
+""", @[("S", tInteger), ("SB", tExtitem)]):
+  let
+    sbobj = s.pop()
+    b = s.pop().intv
+
+  sbobj.checkStringBuilder()
+
+  if b > high(char).int or b < 0:
+    raise newPgError(fmt"'{b}' is not representable by a byte")
+
+  let sb = cast[ptr seq[char]](sbobj.dat)
+
+  sb[].add(b.char)
+
+addF("sb-build",
+"""
+'sb-build'
+SB -> str
+Builds a string from a StringBuilder SB.
+""", @[("SB", tExtitem)]):
+  let sbobj = s.pop()
+
+  sbobj.checkStringBuilder()
+
+  let sb = cast[ptr seq[char]](sbobj.dat)
+
+  s.push(newString(cast[string](sb[])))
