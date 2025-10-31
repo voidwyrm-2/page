@@ -103,7 +103,16 @@ proc exec(self: Interpreter, n: Node) =
       logger.logdv("Word is not a function")
       self.state.push(v)
   of nDot:
-    let (literal, v) = self.state.nestedGet(n)
+    let
+      origScopeCount = self.state.dicts.len
+      (literal, scopes, v) = self.state.nestedGet(n)
+
+    for d in scopes:
+      self.state.dbegin(d)
+
+    defer:
+      for _ in 0..<scopes.len - (self.state.dicts.len - origScopeCount):
+        discard self.state.dend(self.pstate)
 
     if v.typ == tProcedure and not literal:
       self.state.check(v.args)

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.33.1
+
+- (Fix) procedure execution from dot notation didn't enter the scope of the accessed dictionaries.
+
 ## 0.33.0
 
 - Added the 'alpha?', 'digit?', 'alphadigit?', 'sb-init', 'sb-addstr', 'sb-addbyte', and 'sb-build' operators to the 'strings' internal library

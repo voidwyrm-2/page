@@ -76,7 +76,7 @@ proc literalize*(s: State, nodes: seq[Node]): seq[Value] =
       result[i] = newProcedure(@[], proc(sptr: pointer, ps: ProcState) = 
         let
           s = cast[State](sptr)
-          (literal, v) = s.nestedGet(n)
+          (literal, _, v) = s.nestedGet(n)
 
         if v.typ == tProcedure and not literal:
           s.check(v.args)

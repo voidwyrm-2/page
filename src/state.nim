@@ -122,13 +122,15 @@ proc unset*(self: State, name: string): bool =
   result = d.hasKey(name)
   d.del(name)
 
-proc nestedGet*(self: State, node: Node): tuple[literal: bool, val: Value] =
+proc nestedGet*(self: State, node: Node): tuple[literal: bool, scopes: seq[Dict], val: Value] =
   if node.typ != nDot:
     panic("Node is not nDot")
 
   let d =
     if node.left.typ == nDot:
-      self.nestedGet(node.left).val
+      let (_, scopes, v) = self.nestedGet(node.left)
+      result.scopes.add(scopes)
+      v
     else:
       self.get(node.left.tok.lit)
 
@@ -143,12 +145,15 @@ proc nestedGet*(self: State, node: Node): tuple[literal: bool, val: Value] =
     t = d.dictv
     name = node.right.tok.lit
 
+  result.scopes.add(t)
+
   if not t.hasKey(name):
     let e = newPgError(fmt"Undefined symbol '{name}'")
     e.addTrace(node.right.trace())
     raise e
 
-  result = (node.right.typ == nSymbol, t[name])
+  result.literal = node.right.typ == nSymbol
+  result.val = t[name]
 
 proc push*(self: State, val: Value) =
   self.stack.add(val)
