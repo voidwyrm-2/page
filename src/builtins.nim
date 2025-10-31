@@ -179,30 +179,6 @@ proc importFile*(s: State, path: string): Value =
   return expo
 
 
-proc literalize(s: State, nodes: seq[Node]): seq[Value] =
-  result = newSeq[Value](nodes.len)
-
-  for (i, node) in enumerate(nodes):
-    case node.typ
-    of nSymbol:
-      result[i] = newSymbol(node.tok.lit)
-    of nString:
-      result[i] = newString(node.tok.lit)
-    of nInteger:
-      let num = parseInt(node.tok.lit)
-      result[i] = newInteger(num)
-    of nReal:
-      let num = parseFloat(node.tok.lit)
-      result[i] = newReal(num)
-    of nList:
-      result[i] = newList(literalize(s, node.nodes))
-    of nProc:
-      result[i] = newProcedure(node.nodes)
-      result[i].lit = true
-    of nWord:
-      result[i] = s.get(node.tok.lit)
-
-
 # Meta operators
 
 addV("version",
@@ -628,7 +604,9 @@ V ->
 Takes in a value V and prints it in its debug form.
 This function will print any value as it roughly was in the original source code.
 """, @[("V", tAny)]):
-  echo s.pop().debug()
+  let v = s.pop()
+
+  echo v.debug()
 
 addF("print",
 """
@@ -739,7 +717,7 @@ addF("readf",
 P -> str
 Reads a path P and returns the resulting string S.
 """, @[("P", tString)]):
-  let path = s.pop().strv
+  let path = s.pop().strv.fixPath(s.g)
   
   var content: string
 
@@ -757,7 +735,7 @@ S P ->
 Writes a string S to a path P.
 """, @[("S", tString), ("P", tString)]):
   let
-    path = s.pop().strv
+    path = s.pop().strv.fixPath(s.g)
     content = s.pop().strv
 
   try:
@@ -1198,6 +1176,7 @@ Acts as shorthand for 'begin ... end'.
 """, @[("D", tDict), ("P", tProcedure)]):
   "exch begin exec end"
 
+#[
 addS(".",
 """
 '.' (dot)
@@ -1213,6 +1192,7 @@ begin
   {exec}
   if
 end"""
+]#
 
 addF("symbols",
 """

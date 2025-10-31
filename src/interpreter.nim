@@ -1,4 +1,7 @@
-import std/strutils
+import std/[
+  strutils,
+  strformat
+]
 
 import
   state,
@@ -57,6 +60,8 @@ proc runDeferred*(self: Interpreter) =
 proc exec(self: Interpreter, n: Node) =
   logger.logd("DEFERRED: " & $self.state.deferred)
 
+  #logger.log(fmt"NODE: {n}", llInternDebug)
+
   case n.typ
   of nSymbol:
     self.state.push(newSymbol(n.tok.lit))
@@ -81,6 +86,7 @@ proc exec(self: Interpreter, n: Node) =
 
     if v.typ == tProcedure:
       logger.logdv("Word is a function")
+      logger.logdv(fmt"As debug: `{v.debug()}`")
 
       logger.logdv("Checking function arguments")
       self.state.check(v.args)
@@ -95,6 +101,20 @@ proc exec(self: Interpreter, n: Node) =
         v.run(cast[pointer](self.state), ps)
     else:
       logger.logdv("Word is not a function")
+      self.state.push(v)
+  of nDot:
+    let v = self.state.nestedGet(n)
+
+    if v.typ == tProcedure:
+      self.state.check(v.args)
+
+      let ps = self.pstate
+
+      if v.ptype == ptLiteral:
+        evalValues(self.state, ps, v.values)
+      else:
+        v.run(cast[pointer](self.state), ps)
+    else:
       self.state.push(v)
 
 proc exec*(self: Interpreter, nodes: openArray[Node]) =

@@ -220,7 +220,7 @@ proc newProcedure*(nodes: seq[Node]): Value =
   newProcedure(@[], nodes)
 
 proc newProcedure*(args: ProcArgs, file, text: string): Value =
-  var
+  let
     lexer = newLexer(file, text)
     parser = newParser(lexer.lex())
 

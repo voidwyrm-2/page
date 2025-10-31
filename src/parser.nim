@@ -15,44 +15,87 @@ type
     nInteger,
     nReal,
     nList,
-    nProc
+    nProc,
+    nDot
 
-  Node* = object
-    case typ*: NodeType
+  Node* = ref object
+    case typ: NodeType
     of nWord, nSymbol, nString, nInteger, nReal:
       tok*: Token
     of nList, nProc:
       anchor*: Token
       nodes*: seq[Node]
+    of nDot:
+      left*, right*: Node
 
   Parser* = ref object
     toks: seq[Token]
     idx: int
 
-func dbgLit*(node: Node): string =
-  case node.typ
+func typ*(self: Node): NodeType =
+  self.typ
+
+func tok*(self: Node): Token =
+  case self.typ
+  of nWord, nSymbol, nString, nInteger, nReal:
+    self.tok
+  of nList, nProc:
+    self.anchor
+  of nDot:
+    self.left.tok
+
+
+func dbgLit*(self: Node): string =
+  case self.typ
     of nWord, nSymbol, nString, nInteger, nReal:
-      node.tok.dbgLit
+      self.tok.dbgLit
     of nList:
-      "[" & node.nodes.mapIt(it.dbgLit).join(" ") & "]"
+      "[" & self.nodes.mapIt(it.dbgLit).join(" ") & "]"
     of nProc:
-      "{" & node.nodes.mapIt(it.dbgLit).join(" ") & "}"
+      "{" & self.nodes.mapIt(it.dbgLit).join(" ") & "}"
+    of nDot:
+      self.left.dbgLit & "." & self.right.dbgLit
 
-func trace*(node: Node): string =
-  case node.typ
+func trace*(self: Node): string =
+  case self.typ
   of nWord, nSymbol, nString, nInteger, nReal:
-    node.tok.trace()
+    self.tok.trace()
   of nList, nProc:
-    node.anchor.trace()
+    self.anchor.trace()
+  of nDot:
+    self.left.trace()
 
-proc `$`*(node: Node): string =
-  result = "(" & $(type(node)) & ": "
+func copy*(self: Node): Node =
+  case self.typ
+  of nWord:
+    Node(typ: nWord, tok: self.tok)
+  of nSymbol:
+    Node(typ: nSymbol, tok: self.tok)
+  of nString:
+    Node(typ: nString, tok: self.tok)
+  of nInteger:
+    Node(typ: nInteger, tok: self.tok)
+  of nReal:
+    Node(typ: nReal, tok: self.tok)
+  of nList:
+    Node(typ: nList, anchor: self.anchor, nodes: self.nodes)
+  of nProc:
+    Node(typ: nProc, anchor: self.anchor, nodes: self.nodes)
+  of nDot:
+    Node(typ: nDot, left: self.left, right: self.right)
 
-  case node.typ
+proc `$`*(self: Node): string =
+  result = "(" & $(type(self)) & ": "
+
+  case self.typ
   of nWord, nSymbol, nString, nInteger, nReal:
-    result &= $node.tok
+    result &= $self.tok
   of nList, nProc:
-    result &= $node.nodes
+    result &= $self.nodes
+  of nDot:
+    result &= $self.left
+    result &= "."
+    result &= $self.right
 
   result &= ")"
 
@@ -60,14 +103,47 @@ proc `$`*(node: Node): string =
 func newParser*(toks: seq[Token]): Parser =
   Parser(toks: toks)
 
-func parseInner(self: Parser, endType: TokenType): seq[Node] =
-  while self.idx < self.toks.len():
+func isType(self: Parser, tt: TokenType): bool =
+  self.idx < self.toks.len and self.toks[self.idx].typ == tt
+
+func nextIsType(self: Parser, tt: TokenType): bool =
+  self.idx + 1 < self.toks.len and self.toks[self.idx + 1].typ == tt
+
+proc eat(self: Parser, tt: TokenType): Token =
+  if self.idx >= self.toks.len:
+    let e = newPgError(fmt"Expected {tt.name}, but found EOF instead")
+    e.addTrace(self.toks[^1].trace)
+    raise e
+
+  result = self.toks[self.idx]
+  
+  if result.typ != tt:
+    let e = newPgError(fmt"Expected {tt.name}, but found '{result.dbgLit}' instead")
+    e.addTrace(result.trace)
+    raise e
+
+  inc self.idx
+
+proc parseInner(self: Parser, startTok: ptr Token, endType: TokenType): seq[Node] =
+  while self.idx < self.toks.len:
     let tok = self.toks[self.idx]
 
-    case tok.kind()
+    case tok.typ
     of ttWord:
-      result.add(Node(typ: nWord, tok: tok))
+      let n = Node(typ: nWord, tok: tok)
       inc self.idx
+
+      if self.isType(ttDot):
+        var le = n
+
+        while self.isType(ttDot):
+          inc self.idx
+          le = Node(typ: nDot, left: le)
+          le.right = Node(typ: nWord, tok: self.eat(ttWord))
+
+        result.add(le)
+      else:
+        result.add(n)
     of ttSymbol:
       result.add(Node(typ: nSymbol, tok: tok))
       inc self.idx
@@ -82,17 +158,33 @@ func parseInner(self: Parser, endType: TokenType): seq[Node] =
       inc self.idx
     of ttBracketOpen:
       inc self.idx
-      result.add(Node(typ: nList, anchor: tok, nodes: self.parseInner(ttBracketClose)))
+      result.add(Node(typ: nList, anchor: tok, nodes: self.parseInner(addr tok, ttBracketClose)))
       inc self.idx
     of ttBraceOpen:
       inc self.idx
-      result.add(Node(typ: nProc, anchor: tok, nodes: self.parseInner(ttBraceClose)))
+      result.add(Node(typ: nProc, anchor: tok, nodes: self.parseInner(addr tok, ttBraceClose)))
       inc self.idx
     else:
-      if tok.kind == endType:
+      if tok.typ == endType:
         return
 
-      raise newPgError(fmt"Unexpected token {tok.kind} == {endType}? {tok.kind == endType} '{tok.dbgLit}'")
+      let e = newPgError(fmt"Unexpected token '{tok.dbgLit}'")
+      e.addTrace(tok.trace)
+      raise e
 
-func parse*(self: Parser): seq[Node] =
-  self.parseInner(ttNone)
+  if endType != ttNone:
+      let lit =
+        case endType
+        of ttBracketClose:
+          ']'
+        of ttBraceClose:
+          '}'
+        else:
+          '\0'
+
+      let e = newPgError(fmt"Expected '{startTok[].lit}' to close '{lit}'")
+      e.addTrace(startTok[].trace)
+      raise e
+
+proc parse*(self: Parser): seq[Node] =
+  self.parseInner(nil, ttNone)

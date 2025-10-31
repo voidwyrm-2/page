@@ -8,7 +8,9 @@ import pkg/checksums/md5
 
 import
   general,
-  value
+  value,
+  parser,
+  lexer
 
 export
   general,
@@ -103,7 +105,7 @@ func has*(self: State, name: string): bool =
 proc set*(self: State, name: string, val: Value) =
   self.dicts[^1][name] = val
 
-func get*(self: State, name: string): Value =
+proc get*(self: State, name: string): Value =
   for d in self.dicts.rev:
     if d.hasKey(name):
       return d[name]
@@ -114,6 +116,34 @@ proc unset*(self: State, name: string): bool =
   let d = self.dicts[^1]
   result = d.hasKey(name)
   d.del(name)
+
+proc nestedGet*(self: State, node: Node): Value =
+  if node.typ != nDot:
+    panic("Node is not nDot")
+
+  let d =
+    if node.left.typ == nDot:
+      self.nestedGet(node.left)
+    else:
+      self.get(node.left.tok.lit)
+
+  if d.typ != tDict:
+    let
+      an = if ($d.typ)[0].toLowerAscii() in {'a', 'e', 'i', 'o', 'u'}: "An" else: "A"
+      e = newPgError(fmt"{an} {d.typ} cannot be accessed like a dictionary")
+    e.addTrace(node.trace())
+    raise e
+
+  let 
+    t = d.dictv
+    name = node.right.tok.lit
+
+  if not t.hasKey(name):
+    let e = newPgError(fmt"Undefined symbol '{name}'")
+    e.addTrace(node.right.trace())
+    raise e
+
+  result = t[name]
 
 proc push*(self: State, val: Value) =
   self.stack.add(val)

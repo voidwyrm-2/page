@@ -38,6 +38,12 @@ func checkPgFile*(val: Value) =
     raise newPgError("Given object is not a File object")
 
 
+func fixPath*(path: string, g: GlobalState): string =
+  result = path
+
+  if result.len > 0 and result[0] != '/':
+    result = g.cwd / result
+
 addF("f-open",
 """
 'f-open'
@@ -50,16 +56,13 @@ The valid modes are:
 - /a (append); opens the file for writing and appends to the end of the file when written to, throws an error if the file doesn't exist.
 - /c (create); opens the file for reading and writing, creates the file if it doesn't exist.
 """, @[("P", tString), ("M", tSymbol)]):
-  let modeName = s.pop().strv
+  let
+    modeName = s.pop().strv
+    path = s.pop().strv.fixPath(s.g)
 
   var
-    path = s.pop().strv
-
     mode: FileMode
     f: File
-
-  if path.len > 0 and path[0] != '/':
-    path = s.g.cwd / path
 
   case modeName
   of "r":

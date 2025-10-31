@@ -23,10 +23,11 @@ type
     ttBracketOpen,
     ttBracketClose,
     ttBraceOpen,
-    ttBraceClose
+    ttBraceClose,
+    ttDot
 
   Token* = object
-    ty: TokenType
+    typ: TokenType
     file, lit: string
     col, ln: int
 
@@ -47,16 +48,45 @@ func toTokenType(ch: char, tt: var TokenType): bool =
     tt = ttBraceOpen
   of '}':
     tt = ttBraceClose
+  of '.':
+    tt = ttDot
   else:
     return false
 
   true
 
-func initToken*(typ: TokenType, file, lit: string, col, ln: int): Token =
-  Token(ty: typ, file: file, lit: lit, col: col, ln: ln)
 
-func kind*(tok: Token): TokenType =
-  tok.ty
+func name*(typ: TokenType): string =
+  case typ
+  of ttNone:
+    ""
+  of ttWord:
+    "word"
+  of ttSymbol:
+    "symbol"
+  of ttString:
+    "string"
+  of ttInteger:
+    "integer"
+  of ttReal:
+    "real"
+  of ttBracketOpen:
+    "'['"
+  of ttBracketClose:
+    "']'"
+  of ttBraceOpen:
+    "'{'"
+  of ttBraceClose:
+    "'}'"
+  of ttDot:
+    "'.'"
+
+
+func initToken*(typ: TokenType, file, lit: string, col, ln: int): Token =
+  Token(typ: typ, file: file, lit: lit, col: col, ln: ln)
+
+func typ*(tok: Token): TokenType =
+  tok.typ
 
 func lit*(tok: Token): string =
   tok.lit
@@ -68,13 +98,13 @@ func trace*(tok: Token): string =
   fmt"{tok.file}:{tok.ln}:{tok.col}"
 
 func `==`*(a: Token, b: TokenType): bool =
-  a.kind == b
+  a.typ == b
 
 func `==`*(a: Token, b: string): bool =
   a.lit == b
 
 func dbgLit*(tok: Token): string =
-  case tok.kind
+  case tok.typ
   of ttString:
     "(" & tok.lit & ")"
   of ttSymbol:
@@ -83,7 +113,7 @@ func dbgLit*(tok: Token): string =
     tok.lit
 
 func `$`*(tok: Token): string =
-  "{" & fmt"{tok.kind} `{tok.lit}` {tok.col} {tok.ln} '{tok.file}'" & "}"
+  "{" & fmt"{tok.typ} `{tok.lit}` {tok.col} {tok.ln} '{tok.file}'" & "}"
 
 
 func next(self: Lexer) # Nim, you're a modern (ish) compiled language, how is this an issue
@@ -118,7 +148,7 @@ func next(self: Lexer) =
 #func peek(self: Lexer): Option[char] =
 # if self.idx + 1 < self.text.len(): some(self.text[self.idx + 1]) else: options.none[char]()
 
-const nonWordChars = {'%', '/', '(', ')', '[', ']', '{', '}'}
+const nonWordChars = {'%', '/', '(', ')', '[', ']', '{', '}', '.'}
 
 func isWordChar*(ch: char): bool =
   result = int(ch) > 32
@@ -126,8 +156,8 @@ func isWordChar*(ch: char): bool =
   result &&= not ch.isSpaceAscii()
   result &&= ch notin nonWordChars
 
-func collectString(self: Lexer): Token =
-  result.ty = ttString
+proc collectString(self: Lexer): Token =
+  result.typ = ttString
   result.col = self.col
   result.ln = self.ln
   result.file = self.file
@@ -173,8 +203,8 @@ func collectString(self: Lexer): Token =
 
   self.next()
 
-func collectWord(self: Lexer, kind: TokenType = ttWord, skip: bool = false): Token =
-  result.ty = kind
+proc collectWord(self: Lexer, kind: TokenType = ttWord, skip: bool = false): Token =
+  result.typ = kind
   result.col = self.col
   result.ln = self.ln
   result.file = self.file
@@ -192,7 +222,7 @@ func collectWord(self: Lexer, kind: TokenType = ttWord, skip: bool = false): Tok
   if kind == ttWord:
     try:
       discard parseInt(result.lit)
-      result.ty = ttInteger
+      result.typ = ttInteger
       return
     except ValueError:
       discard
@@ -209,7 +239,7 @@ func collectWord(self: Lexer, kind: TokenType = ttWord, skip: bool = false): Tok
       else:
         discard
 
-      result.ty = ttReal
+      result.typ = ttReal
     except ValueError:
       discard
 

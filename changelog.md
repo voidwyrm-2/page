@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.32.0
+
+- Page now has dot notation for accessing items inside of dictionaries conveniently
+- The '.' builtin operator has been removed
+- (Fix) unterminated array and procedure literals didn't cause an error
+- (Fix) point three of the previous changelog wasn't applied to 'readf' and 'writef'
+- Edited the 'json' example to use dot notation
+- Added the 'nest' example
+
 ## 0.31.0
 
 - File imports are now cached
@@ -24,11 +33,9 @@
 - Added the 'item?', '-rot', 'band', 'bor', 'xor', 'bnot', 'inf', '-inf', 'round', 'floor', 'ceil', 'not', 'load?', and 'dcopy' builtin operators
 - Added the 'exe', 'file', 'argv', 'env>', 'env?>', and '>env' operators to the 'os' internal library
 
-
 ## 0.29.0
 
 - Added the 'somefrom' builtin symbol
-
 
 ## 0.28.0
 
@@ -38,17 +45,14 @@
 - Added the 'io' internal library with the 'f-write', 'f-open', 'f-close', and 'f-read' operators
 - Added the ExtItem datatype, which represents a pointer to abstract data
 
-
 ## 0.27.1
 
 - (Fix) tString wasn't included in the tAny set
 - (Fix) Literal-bound procedures (created via 'bind') functioned incorrectly
 
-
 ## 0.27.0
 
 - Page's type checking system now uses sets instead of direct bitwise comparison
-
 
 ## 0.26.0
 
@@ -56,11 +60,9 @@
 - The 'http' module can now be disabled at compile-time using the 'nohttp' symbol
 - Added the 'target' and 'help' subcommands to build.nims
 
-
 ## 0.25.0
 
 - Added the 'null?', 'defer', 'throw', 'try', and 'trycatch' builtin operators
-
 
 ## 0.24.1
 
@@ -69,7 +71,6 @@
 - The build system now uses NimScript
 - 'import' now uses `/` intead of `.` as a path separator
 - The project dependancies are now stored locally
-
 
 ## 0.23.0
 
@@ -80,14 +81,12 @@
 - 'get' and 'put' now support negative indexes
 - Procedures can now be 'literal', meaning symbols inside of them are pre-resolved
 
-
 ## 0.22.0
 
 - NPScript values are now represented by a tagged union instead of a class object
 - The 'Number' type is now separated into 'Integer' and 'Real' types
 - The 'Function' type has been renamed to 'Procedure'
 - 'import' now uses `.` intead of `/` as a path separator
-
 
 ## 0.21.2
 
@@ -98,7 +97,6 @@
 - Added the 'replace' operator to the 'strings' internal library
 - Composite functions now show their contents with debug like GhostScript
 
-
 ## 0.20.1
 
 - Removed an unused missing library from npscript.nim
@@ -106,7 +104,6 @@
 - Added a todo list and contribution guidelines
 - Altered the builtin operator 'sts' to be more in line with the standard PostScript equivalent
 - Changed a comment in the 'fib' example, as it contained outdated information
-
 
 ## 0.20.0
 
@@ -116,23 +113,19 @@
 - Added the 'filter' example
 - Altered the documentation of the 'add', 'sub', 'mul', 'div', 'mod', 'exp', 'length', and 'sts' operators
 
-
 ## 0.19.5
 
 - (Fix) the basic help message was misformatted
 - NPScript now uses https://github.com/nitely/nim-regex instead of std/re for regex to solve dynamic linking issues
-
 
 ## 0.19.4
 
 - The musl targets are now statically linked
 - build.sh now has a help message
 
-
 ## 0.19.3
 
 - Switched from using an internal library to https://github.com/voidwyrm-2/nargparse for argument parsing
-
 
 ## 0.19.2
 
@@ -142,18 +135,15 @@
 - The help message is split into shorted and extended versions
 - Non-function builtin symbols and non-native builtin functions now have docstrings
 
-
 ## 0.18.3
 
 - NPScript data objects now have a 'doc' field attached
 - Added the 'help', 'huhs?', 'huhl?', 'huhp?', and 'huh?' builtin functions
 - The builtin symbols 'langver', 'null', 'false', and 'true' now have docstrings
 
-
 ## 0.17.2
 
 - (Fix) The global logger wasn't being initialized when '-log' wasn't passed, causing nil accesses
-
 
 ## 0.17.1
 
@@ -161,7 +151,6 @@
 - (Fix) Functions like 'dict' and 'list' which required a whole number as an argument would cause SIGINT (illegal operation/illegal instruction) on x86 systems
 - Added the 'log' flag and debug logging
 - Altered the help message of the '--fstd/--force-std'
-
 
 ## 0.16.4
 
@@ -172,11 +161,9 @@
 - Changed the formatting in the 'range' example
 - Added the 'fib' and 'fizzbuzz' examples
 
-
 ## 0.15.0
 
 - The 'type' builtin function now returns a symbol
-
 
 ## 0.14.0
 
@@ -186,13 +173,11 @@
 - The 'sprintf' function now preallocates part of the final result string
 - Updated the documentation of 'readf' and 'ifelse'
 
-
 ## 0.13.1
 
 - '.' was parsed as '0'
 - Builtins are no longer compile-time defined as it made them inaccesible at runtime
 - The builtins are now copied on each interpreter instantiation; previously the original object was passed, and this allowed changes to the dictionary to effect imported files
-
 
 ## 0.13.0
 
@@ -201,7 +186,6 @@
 - 'inf', '-inf', and 'nan' can now be used to create the respective number values
 - Updated the documentation of 'split' (from 'strings')
 
-
 ## 0.12.8
 
 - The String and NpsList types now use 64-bit integers for their lengths
@@ -209,7 +193,6 @@
 - Renamed NpsList::arr -> NpsList::ptr
 - NpsDict now has the `uint64_t len(void)` method
 - The NpsValue::getBool method now returns Bool instead of uint32_t
-
 
 ## 0.12.7
 
@@ -222,16 +205,13 @@
 - A C header ('npscript.h', found in src/data) is now embedded inside of the executable at compile-time, which will be used for C FFI in the future; this header is written to ~/.npscript/include when the executable is first run or if that folder doesn't exist
 - The standard library has one module, 'testing'
 
-
 ## 0.11.1
 
 - (Fix) 'or' was misnamed as 'and'
 
-
 ## 0.11.0
 
 - Added the 'and' and 'or' builtin symbols
-
 
 ## 0.10.4
 
@@ -240,17 +220,14 @@
 - The dictionary datatype now debug formats to '-dict-'
 - Updated the 'math' test to add cases for 'idiv', 'mod', and 'exp'
 
-
 ## 0.9.0
 
 - NPScript now creates a .npscript folder in the home directory
 - The REPL now has a persistent history
 
-
 ## 0.8.4
 
 - Updated code styling and formatting
-
 
 ## 0.8.3
 
@@ -258,56 +235,45 @@
 - An internal argument parsing library (argparse) is now used instead of std/optparse
 - Errors are now printed to stderr instead of stdout
 
-
 ## 0.7.0
 
 - Added the 'printf' builtin symbol
-
 
 ## 0.6.1
 
 - Updated the 'import' documentation
 
-
 ## 0.6.0
 
 - Added the 'import' buitlin symbol
-
 
 ## 0.5.13
 
 - (Fix) Nested loops conflicted with each other's states
 
-
 ## 0.5.12
 
 - Added the 'cvi' builtin symbol
-
 
 ## 0.5.11
 
 - (Fix) 'exit' could not be used inside of 'forall'
 
-
 ## 0.5.10
 
 - Added the 'split' symbol to '~strings'
-
 
 ## 0.5.9
 
 - (Fix) Escape squences were getting read as multiple characters
 
-
 ## 0.5.8
 
 - Added support for escape sequences
 
-
 ## 0.5.7
 
 - Added the 'readf' and 'writef' builtin symbols
-
 
 ## 0.5.6
 
@@ -315,38 +281,31 @@
 - Added the 'scoped' and 'symbols' builtin symbols
 - Added the '~strings' internal library, containing the symbol 'chars'
 
-
 ## 0.5.5
 
 - Added the 'forall' builtin
-
 
 ## 0.5.4
 
 - Rewrote much of the documention for the builtin functions
 - Added the 'type', 'quitn', 'gt', 'ge', 'lt', 'le', 'ifelse', and 'for' builtins
 
-
 ## 0.5.2
 
 - (Fix) The error that using 'exit' outside of a loop caused didn't have a stacktrace
 
-
 ## 0.5.1
 
 - Updated REPL header
-
 
 ## 0.5.0
 
 - Added the '-h|--help' flag
 - Implemented the REPL
 
-
 ## 0.4.3
 
 - Added the '-v|--version' flag
-
 
 ## 0.4.2
 
@@ -354,24 +313,20 @@
 - Added the 'eq', 'ne', 'if', 'dict', 'begin', 'end' builtins
 - Updated the 'range' example
 
-
 ## 0.4.1
 
 - Added the dict datatype
 - Added the 'dict', 'begin', and 'end' builtins
-
 
 ## 0.4.0
 
 - Added the bool datatype
 - Added the 'quit', 'exit', 'true', 'false', 'pop', 'dup', 'exch', 'add', 'sub', 'mul', 'div', 'stack', 'pstack', 'loop', 'def', and 'load' builtins
 
-
 ## 0.3.4
 
 - Slightly refactored how functions are represented
 - Refactored the builtins file to allow for ease of writing
-
 
 ## 0.3.3
 

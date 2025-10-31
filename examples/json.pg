@@ -11,7 +11,8 @@ begin
 end
 } def
 
-(json) import begin
+(json) importdef
+(io) importdef
 
 <<
   /Uzi (Has sick-as-hell railgun)
@@ -20,21 +21,19 @@ end
   /J   (Sided with the enemy)
 >>
 
-encodes = (\n)=
+~json.encodes = (\n)=
 
 ({
   "Uzi": "Has sick-as-hell railgun",
   "N": "Loves dogs",
   "V": "Secretly very nice",
   "J": "Sided with the enemy"
-}) decodes
+}) ~json.decodes
 
 fmtd (\n)=
 
+(data.json) /r ~io.f-open
 
-(io) import begin
-(data.json) /r f-open
-
-decodef
+~json.decodef
 
 fmtd

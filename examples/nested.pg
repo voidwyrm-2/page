@@ -1,0 +1,42 @@
+3 dict begin
+  /a 10 def
+
+  3 dict begin
+    /ba (So many fishes in the sea why can't one of them be mine?) def
+    /bb (And now every mother can choose the color, of her child) def
+    /bc (I'm walking away with the life of the party) def
+    
+    this
+  end
+  /b exch def
+
+  /c 30 def
+
+  this
+end
+/d exch def
+
+
+(Length: ) print
+d length ==
+
+(d.a: ) print
+d.a ==
+
+(d.b: ) print
+d.b ==
+
+(d.c: ) print
+d.c ==
+
+
+(d.b.ba: ) print
+d.b.ba ==
+
+(d.b.bb: ) print
+d.b.bb ==
+
+(d.b.bc: ) print
+d.b.bc ==
+
+d.a.ab ==
