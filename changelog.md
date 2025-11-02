@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.34.0
+
+- Added the 'sqrt', 'neg', and 'undef?' builtin operators
+- (Fix) 'undef' did nothing
+
 ## 0.33.1
 
 - (Fix) procedure execution from dot notation didn't enter the scope of the accessed dictionaries.

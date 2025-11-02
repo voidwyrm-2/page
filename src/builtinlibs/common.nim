@@ -1,7 +1,8 @@
 import std/[
   tables,
   strutils,
-  enumerate
+  enumerate,
+  math
 ]
 
 import ../[

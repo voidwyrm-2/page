@@ -41,7 +41,13 @@ const
     .split("\n")
     .filterIt(it.startsWith("version"))[0]
     .split("=")[^1]
-    .strip()[1..^2] & (if buildMode != "release": "+" & buildMode else: "")
+    .strip()[1..^2] &
+      (if buildMode != "release":
+        "+" & buildMode
+      elif defined(pre):
+        "-pre"
+      else:
+        "")
 
   product = "Page"
 
@@ -497,6 +503,43 @@ X Y -> X % Y
 Computes the power of X and Y.
 """, `^`)
 
+addF("sqrt",
+"""
+'sqrt'
+N -> N'
+Calculates the square root of a real or integer N.
+""", @[("N", tReal or tInteger)]):
+  let n = s.pop()
+
+  case n.typ
+  of tReal:
+    let sqr = n.realv.float64.sqrt().float
+    s.push(newReal(sqr))
+  of tInteger:
+    let sqr = n.intv.float64.sqrt()
+  
+    if sqr.splitDecimal().floatpart != 0:
+      s.push(newReal(sqr.float))
+    else:
+      s.push(newInteger(sqr.int))
+  else:
+    discard
+
+addF("neg",
+"""
+'neg'
+N -> -N
+Negates a real or integer N.
+""", @[("N", tReal or tInteger)]):
+  let n = s.pop()
+
+  case n.typ
+  of tReal:
+    s.push(newReal(-n.realv))
+  of tInteger:
+      s.push(newInteger(-n.intv))
+  else:
+    discard
 addBitOp("band",
 """
 'band'
@@ -521,9 +564,9 @@ Computes the bitwise XOR of X and Y.
 addF("bnot",
 """
 'bnot'
-X -> ~X
-Computes the bitwise NOT of X.
-""", @[("X", tInteger)]):
+I -> ~I
+Computes the bitwise NOT of an integer I.
+""", @[("I", tInteger)]):
   let a = s.pop().intv
   
   s.push(newInteger(not a))
@@ -557,7 +600,7 @@ addF("round",
 'round'
 R -> R'
 Rounds a real R half away from zero.
-""", @[("N", tReal)]):
+""", @[("R", tReal)]):
   s.push(newReal(s.pop().realv.round()))
 
 addF("floor",
@@ -1040,22 +1083,22 @@ Binds a value V to a symbol S inside the current dictionary.
   
   s.set(name, val)
 
-addF("undef",
+addF("undef?",
 """
-'undef'
-S ->
-Binds symbol S inside the current dictionary.
+'undef?'
+S -> bool
+Unbinds a symbol S inside the current dictionary, then returns true if it existed before unbinding, false otherwise.
 """, @[("S", tSymbol)]):
   let name = s.pop().strv
-  discard s.unset(name)
+  s.push(newBool(s.unset(name)))
 
 addS("undef",
 """
 'undef'
 S ->
-Binds symbol S inside the current dictionary.
+Unbinds a symbol S inside the current dictionary.
 """, @[("S", tSymbol)]):
-  ""
+  "undef pop"
 
 addF("load",
 """
