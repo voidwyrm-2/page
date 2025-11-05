@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.34.1
+
+- Updated how 'psymbols' and 'prsymbols' show the symbol list
+- (Fix) dot-accessing caused very serious scope issues
+
 ## 0.34.0
 
 - Added the 'sqrt', 'neg', and 'undef?' builtin operators

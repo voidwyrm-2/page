@@ -1279,25 +1279,21 @@ addS("psymbols",
 ->
 Shows the symbols inside the last opened dictionary.
 """, @[]):
-  "symbols {=} forall"
+  "symbols (symbols:)= {( %d\n) printf} forall"
 
-addS("prsymbols",
+addF("prsymbols",
 """
 'prsymbols'
 ->
 Shows the symbols in each dictionary.
 """, @[]):
-  """
-1 rsymbols 
-{
-  exch dup
-  (%f:\n) printf
-  exch
+  let dicts = s.dicts
 
-  {( ) printf =} forall
-  1 add
-} forall
-pop"""
+  for (i, dict) in enumerate(dicts):
+    echo i, ":"
+
+    for symbol in dict.keys:
+      echo " /", symbol
 
 
 # Misc operators
