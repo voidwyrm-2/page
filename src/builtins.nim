@@ -995,9 +995,9 @@ addF("get",
 """
 'get'
 L I -> L[I]
-Gets the value at an index I of a list L.
-Negative indexes will index from the back of the list
-""", @[("L", tList), ("I", tInteger)]):
+Gets the value at an index I of a list or string L.
+Negative indexes will index from the back of the list or string.
+""", @[("L", tList or tString), ("I", tInteger)]):
   let
     i = s.pop().intv
     arr = s.pop()
@@ -1011,7 +1011,7 @@ addF("put",
 'put'
 L I V -> L[I] = V
 Sets an index I of a list L to a value X.
-Negative indexes will index from the back of the list
+Negative indexes will index from the back of the list.
 """, @[("L", tList), ("I", tInteger), ("V", tAny)]):
   let
     val = s.pop()
@@ -1428,3 +1428,19 @@ The allowed characters are unrestricted.
   let str = s.pop().strv
 
   s.push(newSymbol(str))
+
+addF("slice",
+"""
+'slice'
+Iter Start Step End -> L[Start:Step:End]
+Slices a list or string Iter from Start until End incrementing by Step.
+""", @[("Iter", tList or tString), ("Start", tInteger), ("Step", tInteger), ("End", tInteger)]):
+  let
+    len = s.pop().intv
+    step = s.pop().intv
+    start = s.pop().intv
+    v = s.pop()
+
+    realLen = if len < 0: len + 1 + v.len else: len
+
+  s.push(v.slice(start, step, realLen))

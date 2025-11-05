@@ -262,14 +262,31 @@ func values*(self: Value): seq[Value] =
 
 
 func checklen(self: Value, ind: Natural) =
-  if self.listVal.len < ind:
+  let len =
+    case self.typ
+    of tString:
+      self.strVal.len
+    of tList:
+      self.listVal.len
+    else:
+      panic("unreachable case in Value.checklen")
+      0
+
+  if len < ind:
     raise newPgError(fmt"Index '{ind}' not in range for the list of length {self.listVal.len}")
   elif ind < 0:
     raise newPgError(fmt"List indexes cannot be negative")
 
 func `[]`*(self: Value, ind: int): Value =
   self.checklen(ind)
-  self.listVal[ind]
+
+  case self.typ
+  of tString:
+    result = newString($self.strVal[ind])
+  of tList:
+    result = self.listVal[ind]
+  else:
+    panic("unreachable case in Value.checklen")
 
 func `[]=`*(self: Value, ind: int, val: Value) =
   self.checklen(ind)
@@ -396,6 +413,39 @@ proc `<`*(self: Value, other: Value): bool =
 proc `<=`*(self: Value, other: Value): bool =
   self < other or self == other
 
+func slice*(self: Value, start, step, len: int): Value =
+  if start < 0:
+    raise newPgError("The slice start cannot be less than zero")
+  
+  if step < 1:
+    raise newPgError("The slice step cannot be less than one")
+
+  self.checklen(len)
+
+  let newLen = ((len - start) / step).int + 1
+  
+  var i = start
+
+  case self.typ
+  of tString:
+    var str = newStringOfCap(newLen)
+
+    while i < len:
+      str &= self.strVal[i]
+      i += step
+
+    result = newString(str)
+  of tList:
+    var ls = newSeqOfCap[Value](newLen)
+
+    while i < len:
+      ls.add(self.listVal[i])
+      i += step
+
+    result = newlist(ls)
+  else:
+    raise newPgError(fmt"Operator 'slice' cannot be used on {self.typ}")
+
 func len*(self: Value): int =
   case self.typ
   of tString:
@@ -405,24 +455,33 @@ func len*(self: Value): int =
   of tDict:
     self.dictVal.len
   else:
-    raise newPgError(fmt"operator 'length' cannot be used on {self.typ}")
+    raise newPgError(fmt"Operator 'length' cannot be used on {self.typ}")
 
 func format*(self: Value): string =
   case self.typ
+  of tInvalid:
+    panic("unreachable in Value.format")
+    ""
   of tNull:
     "null"
   of tBool:
     $self.boolVal
   of tSymbol, tString:
     self.strVal
+  of tList:
+    "-list-"
+  of tDict:
+    "-dict-"
   of tInteger:
     $self.intVal
   of tReal:
     var s = $self.realVal
     s.trimZeros('.')
     s
-  else:
-    "--nostringval--"
+  of tProcedure:
+    "-procedure-"
+  of tExtitem:
+    "-extitem-"
 
 func debug*(self: Value): string =
   case self.typ
@@ -431,17 +490,22 @@ func debug*(self: Value): string =
   of tString:
     "(" & self.strVal & ")"
   of tList:
-    "[" & self.listVal.mapIt(it.debug()).join(" ") & "]"
+    "[" & self.listVal.map(debug).join(" ") & "]"
   of tDict:
-    "-dict-"
+    var ps = newSeqOfCap[(string, Value)](self.dictVal.len)
+
+    for p in self.dictVal.pairs:
+      ps.add(p)
+
+    "<<" & ps.mapIt(it[0] & ": " & it[1].debug()).join(", ") & ">>"
   of tProcedure:
     case self.ptype:
     of ptNative:
       "<native function>"
     of ptComposite:
-      "{" & self.nodes.mapIt(it.dbgLit).join(" ") & "}"
+      "{" & self.nodes.map(dbgLit).join(" ") & "}"
     of ptLiteral:
-      "{" & self.values.mapIt(it.debug()).join(" ") & "}"
+      "{" & self.values.map(debug).join(" ") & "}"
   of tExtitem:
     if self.fmtf != nil:
       self.fmtf(self.dat)

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.35.0
+
+- Added the 'slice' builtin operator
+- 'get' now works with strings
+- Several types now format slightly differently
+
 ## 0.34.1
 
 - Updated how 'psymbols' and 'prsymbols' show the symbol list
