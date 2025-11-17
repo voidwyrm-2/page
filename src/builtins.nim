@@ -810,9 +810,9 @@ X Y -> X > Y
 Compares X and Y.
 """, `>`)
 
-addBoolOp("gt",
+addBoolOp("ge",
 """
-'gt'
+'ge'
 X Y -> X >= Y
 Compares X and Y.
 """, `>=`)

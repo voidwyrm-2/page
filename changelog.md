@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.35.1
+
+- 'ge' was misnamed as 'gt'
+
 ## 0.35.0
 
 - Added the 'slice' builtin operator
