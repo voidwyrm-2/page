@@ -160,6 +160,7 @@ else:
         ("arm64", "aarch64-linux-musl")
       ]),
       ("windows", @[
+       ("arm64", "aarch64-windows"),
         ("amd64", "x86_64-windows"),
         ("i386", "x86-windows")
       ])
