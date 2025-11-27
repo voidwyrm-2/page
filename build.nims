@@ -128,7 +128,9 @@ else:
 
     buf.run()
     pack()
-  of "target":
+  of "target", "ctarget":
+    let ct = cmd[0] == 'c'
+
     let buf = Cmd(buf: nimc)
     buf.addd release
     buf.addf "cc", "clang"
@@ -139,16 +141,25 @@ else:
     buf.addf "os", paramStr(4)
     buf.addf "cpu", paramStr(5)
     buf.addf "forceBuild", "on"
+    
+    if ct:
+      buf.addf "c"
+
+    let (exepath, pack) = getPack(fmt"{cmd}_{paramStr(4)}_{paramStr(5)}_{paramStr(6)}")
+
+    
 
     buf.addf(
-      "out",
+      if ct: "nimcache" else: "out",
       if (let output = getEnv("OUT"); output.len > 0):
         output
       else:
-        getPack(fmt"target_{paramStr(4)}_{paramStr(5)}_{paramStr(6)}")[0]
+        exepath.parentDir()
     )
 
     buf.run()
+    if ct:
+     pack() 
   of "some":
     let targets = @[
       ("linux", @[
@@ -160,7 +171,7 @@ else:
         ("arm64", "aarch64-linux-musl")
       ]),
       ("windows", @[
-       ("arm64", "aarch64-windows"),
+        ("arm64", "aarch64-windows"),
         ("amd64", "x86_64-windows"),
         ("i386", "x86-windows")
       ])
@@ -196,6 +207,9 @@ Usage:
   
   ./build.nims target <os> <cpu> <llvm triple>
   - builds for the specified target.
+  
+  ./build.nims ctarget <os> <cpu> <llvm triple>
+  - builds for the specified target, but doesn't build or link the resulting C.
   
   ./build.nims macos
   - builds for the MacOS target (only works on MacOS systems).
