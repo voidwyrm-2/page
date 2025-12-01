@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.36.1
+
+- 'slice' causes a fatal crash when slicing strings
+
 ## 0.36.0
 
 - Page now (after ***much*** pain) has closures

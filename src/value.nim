@@ -275,7 +275,7 @@ func checklen(self: Value, ind: Natural) =
       0
 
   if len < ind:
-    raise newPgError(fmt"Index '{ind}' not in range for the list of length {self.listVal.len}")
+    raise newPgError(fmt"Index '{ind}' not in range for the list of length {len}")
   elif ind < 0:
     raise newPgError(fmt"List indexes cannot be negative")
 
