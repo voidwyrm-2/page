@@ -353,6 +353,9 @@ Takes a function P and executes it.
 
   s.check(f.args)
 
+  ps.closure = f.closure
+  defer: ps.closure = nil
+
   if f.ptype == ptLiteral:
     evalValues(s, ps, f.values)
   else:
@@ -1107,7 +1110,7 @@ S -> V
 Retrieves the value bound to a symbol S.
 """, @[("S", tSymbol)]):
   let name = s.pop().strv
-  s.push(s.get(name))
+  s.push(s.get(name, cast[State](ps.closure)))
 
 addS("load?",
 """

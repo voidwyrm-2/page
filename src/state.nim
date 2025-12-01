@@ -26,8 +26,13 @@ type
     importCache*: TableRef[string, ImportCacheEntry]
     cleanup*: seq[proc()]
 
+  ClosureState* = object
+    g*: GlobalState
+    dicts*: seq[Dict]
+
   State* = ref object
     g*: GlobalState
+    parent*: State
     dictMin: int
     dicts: seq[Dict]
     stack: seq[Value]
@@ -50,6 +55,12 @@ func copy*(dict: Dict): Dict =
   for (k, v) in dict.pairs:
     result[k] = v
 
+func pairSeq*(dict: Dict): seq[(string, Value)] =
+  result = newSeqOfCap[(string, Value)](dict.len)
+
+  for p in dict.pairs:
+    result.add(p)
+
 
 func newGlobalState*(exe, file: string, args: seq[string]): GlobalState =
   new result
@@ -59,8 +70,17 @@ func newGlobalState*(exe, file: string, args: seq[string]): GlobalState =
   result.importCache = newTable[string, ImportCacheEntry](0)
 
 
-func newState*(dictMin: int, dicts: varargs[Dict]): State =
+func stateFromClosure*(clos: ptr ClosureState): State =
+  if clos == nil:
+    return nil
+
   new result
+  result.g = clos[].g
+  result.dicts = clos[].dicts
+
+func newState*(dictMin: int, dicts: varargs[Dict], parent: State = nil): State =
+  new result
+  result.parent = parent
   result.dictMin = dictMin
   result.dicts = newSeqOfCap[Dict](varargsLen(dicts))
   result.deferred = newSeqOfCap[seq[Value]](varargsLen(dicts))
@@ -78,6 +98,8 @@ proc doCleanup*(self: State) =
   for f in self.g.cleanup:
     f()
 
+  self.g.cleanup = @[]
+
 func dicts*(self: State): seq[Dict] =
   self.dicts
 
@@ -87,6 +109,18 @@ func stack*(self: State): seq[Value] =
 func dbegin*(self: State, dict: Dict) =
   self.dicts.add(dict)
   self.deferred.add(@[])
+
+proc closure*(self: State): ptr ClosureState =
+  let clos = allocZ(ClosureState)
+  clos[].g = self.g
+  clos[].dicts = newSeqOfCap[Dict](self.dicts.len)
+
+  for d in self.dicts:
+    clos[].dicts.add(d)
+
+  self.g.cleanup.add(proc() = dealloc(clos))
+  
+  clos
 
 func dbegin*(self: State, size: int) =
   self.dbegin(newDict(size))
@@ -110,10 +144,13 @@ func has*(self: State, name: string): bool =
 proc set*(self: State, name: string, val: Value) =
   self.dicts[^1][name] = val
 
-proc get*(self: State, name: string): Value =
+proc get*(self: State, name: string, closure: State = nil): Value =
   for d in self.dicts.rev:
     if d.hasKey(name):
       return d[name]
+
+  if closure != nil:
+    return closure.get(name)
 
   raise newPgError(fmt"Undefined symbol '{name}'")
 
@@ -160,6 +197,9 @@ proc push*(self: State, val: Value) =
 
 func pop*(self: State): Value =
   if self.stack.len == 0:
+    if self.parent != nil:
+      return self.parent.pop()
+
     raise newPgError("stack underflow")
 
   self.stack.pop()
@@ -174,14 +214,38 @@ func peek*(self: State, ind: BackwardsIndex): Value =
   self.peek(self.stack.len - int(ind))
 
 proc check*(self: State, args: ProcArgs) =
-  if self.stack.len < args.len:
-    raise newPgError(fmt"Expected {args.len} items on the stack but found {self.stack.len} items instead")
+  if args.len == 0:
+    return
 
-  var i = self.stack.len - 1
+  var
+    srcState = self
+    ind = args.len - 1
+    stackLen = 0
+    stack = newSeq[Value](args.len)
+
+  while true:
+    if srcState.stack.len > 0:
+      for i in countdown(srcState.stack.len - 1, 0, 1):
+        if ind < 0:
+          break
+
+        stack[ind] = srcState.stack[i]
+        dec ind
+        inc stackLen
+
+    if ind < 0 or srcState.parent == nil:
+      break
+
+    srcState = srcState.parent
+
+  if stackLen < args.len:
+    raise newPgError(fmt"Expected {args.len} items on the stack but found {stackLen} items instead")
+
+  var i = stack.len - 1
 
   for pst in args:
-    if self.stack[i] isnot pst.typ:
-      raise newPgError(fmt"Expected type {pst.typ} for argument {pst.name} at stack position {i + 1}, but found type {self.stack[i].typ} instead")
+    if stack[i] isnot pst.typ:
+      raise newPgError(fmt"Expected type {pst.typ} for argument {pst.name} at stack position {i + 1}, but found type {stack[i].typ} instead")
 
     dec i
 

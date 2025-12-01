@@ -23,6 +23,7 @@ export value
 type Interpreter* = ref object
   rand: Rand
   state: State
+  closure: ptr ClosureState
 
 
 proc codeEvaler(g: GlobalState, file, text: string): State
@@ -50,12 +51,30 @@ func pstate(self: Interpreter): ProcState =
 
 proc exec*(self: Interpreter, nodes: openArray[Node])
 
+proc runf(self: Interpreter, v: Value) =
+  self.state.check(v.args)
+
+  let
+    prevClos = self.closure
+    ps = self.pstate
+
+  defer:
+    self.closure = prevClos
+
+  ps.closure = v.closure
+  self.closure = cast[ptr ClosureState](v.closure)
+
+  if v.ptype == ptLiteral:
+    evalValues(self.state, ps, v.values)
+  else:
+    v.run(cast[pointer](self.state), ps)
+
 proc runDeferred*(self: Interpreter) =
   self.state.deferred.add(@[])
   defer: discard self.state.deferred.pop()
 
   for p in self.state.deferred[^2]:
-    p.run(cast[pointer](self.state), self.pstate)
+    self.runf(p)
 
 proc exec(self: Interpreter, n: Node) =
   logger.logd("DEFERRED: " & $self.state.deferred)
@@ -76,29 +95,23 @@ proc exec(self: Interpreter, n: Node) =
   of nList:
     var i = newInterpreter(self.state.dicts)
     i.state.g = self.state.g
+    i.state.parent = self.state
     i.exec(n.nodes)
     self.state.push(newList(i.state.stack))
   of nProc:
-    self.state.push(newProcedure(n.nodes))
+    let
+      p = newProcedure(n.nodes)
+      clos = self.state.closure()
+
+    p.closure = cast[pointer](clos)
+
+    self.state.push(p)
   of nWord:
     logger.logdv("Found word with value '" & n.tok.lit & "'")
-    let v = self.state.get(n.tok.lit)
+    let v = self.state.get(n.tok.lit, self.closure.stateFromClosure())
 
     if v.typ == tProcedure:
-      logger.logdv("Word is a function")
-      logger.logdv(fmt"As debug: `{v.debug()}`")
-
-      logger.logdv("Checking function arguments")
-      self.state.check(v.args)
-
-      logger.logdv("Executing function")
-
-      let ps = self.pstate
-
-      if v.ptype == ptLiteral:
-        evalValues(self.state, ps, v.values)
-      else:
-        v.run(cast[pointer](self.state), ps)
+      self.runf(v)
     else:
       logger.logdv("Word is not a function")
       self.state.push(v)
@@ -113,20 +126,17 @@ proc exec(self: Interpreter, n: Node) =
         discard self.state.dend(self.pstate)
 
     if v.typ == tProcedure and not literal:
-      self.state.check(v.args)
-
-      let ps = self.pstate
-
-      if v.ptype == ptLiteral:
-        evalValues(self.state, ps, v.values)
-      else:
-        v.run(cast[pointer](self.state), ps)
+      self.runf(v)
     else:
       self.state.push(v)
 
 proc exec*(self: Interpreter, nodes: openArray[Node]) =
   if self.state.nodeRunner == nil:
-    self.state.nodeRunner = proc(nodes: seq[Node]) = self.exec(nodes)
+    self.state.nodeRunner = proc(nodes: seq[Node], closure: pointer) =
+      let prevClos = self.closure
+      defer: self.closure = prevClos
+      self.closure = cast[ptr ClosureState](closure)
+      self.exec(nodes)
 
   for n in nodes:
     try:

@@ -33,12 +33,13 @@ type
     tProcedure = 0b100000000,
     tExtitem   = 0b1000000000
 
-  Runner* = proc(nodes: seq[Node])
+  Runner* = proc(nodes: seq[Node], closure: pointer)
 
   ProcState* = ref object
     r*: Runner
     rand*: Rand
     deferred*: seq[seq[Value]]
+    closure*: pointer
 
   NativeProc* = proc(s: pointer, ps: ProcState)
   ProcArgs* = seq[tuple[name: string, typ: Type]]
@@ -72,6 +73,7 @@ type
     of tProcedure:
       args*: ProcArgs
       lit*: bool
+      closure*: pointer
       case ptype: ProcType
       of ptNative:
         native: NativeProc
@@ -301,7 +303,7 @@ proc run*(self: Value, s: pointer, ps: ProcState) =
     self.native(s, ps)
   elif self.ptype == ptComposite:
     if self.nodes.len > 0:
-      ps.r(self.nodes)
+      ps.r(self.nodes, ps.closure)
   elif self.ptype == ptLiteral:
     panic(fmt"Literal procedures cannot be executed via 'run'")
   else:

@@ -1,0 +1,10 @@
+/fun {
+1 dict begin
+  /a 10 def
+  {a ==}
+end
+} def
+
+fun
+dup ==
+exec

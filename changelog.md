@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.36.0
+
+- Page now (after ***much*** pain) has closures
+- Lists literals now draw items from parent stacks (e.g. `1 2 3 [pop]` is now valid)
+
 ## 0.35.1
 
 - 'ge' was misnamed as 'gt'
