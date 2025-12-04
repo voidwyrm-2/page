@@ -121,13 +121,35 @@ Reads a byte from a file and returns it as an integer.
 
   let f = cast[File](fobj.dat)
 
-  var b: byte
+  var b: char
   try:
-    b = f.readChar().byte
-  except IoError as e:
+    b = f.readChar()
+  except IOError as e:
     raise newPgError(e.msg)
 
   s.push(newInteger(b.int))
+
+addF("f-readline",
+"""
+'f-readline'
+FILE -> str
+Reads everything until a newline.
+LF and CRLF are both valid.
+The newline is not a part of the returned string.
+""", @[("FILE", tExtitem)]):
+  let fobj = s.pop()
+
+  let f = cast[File](fobj.dat)
+
+  fobj.checkPgFile()
+
+  var content: string
+  try:
+    content = f.readLine()
+  except IOError as e:
+    raise newPgError(e.msg)
+
+  s.push(newString(content))
 
 addF("f-readall",
 """
@@ -144,7 +166,7 @@ Reads everything from a file object and returns the contents as a string.
   var content: string
   try:
     content = f.readAll()
-  except IoError as e:
+  except IOError as e:
     raise newPgError(e.msg)
 
   s.push(newString(content))
@@ -166,5 +188,5 @@ Writes a string S to a file object and returns the amount written.
   try:
     let b = f.writeBuffer(str[0].addr, str.len)
     s.push(newInteger(b))
-  except IoError as e:
+  except IOError as e:
     raise newPgError(e.msg)

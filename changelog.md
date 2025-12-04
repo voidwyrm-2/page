@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.37.0
+
+- Page now has 'comma notation' for using dot notation on values on the stack, e.g. `,set`, `,names.add`
+- 'roll' now rolls in the reverse direction, e.g. `3 -1 roll` now rolls to the left
+- Added the 'nip' and 'over' builtin operators
+- Added the 'f-readline' operator to the 'io' internal library
+
 ## 0.36.1
 
 - 'slice' causes a fatal crash when slicing strings

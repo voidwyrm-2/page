@@ -26,6 +26,7 @@ type
       anchor*: Token
       nodes*: seq[Node]
     of nDot:
+      dot*: Token
       left*, right*: Node
 
   Parser* = ref object
@@ -63,7 +64,10 @@ func trace*(self: Node): string =
   of nList, nProc:
     self.anchor.trace()
   of nDot:
-    self.left.trace()
+    if self.left == nil:
+      self.dot.trace()
+    else:
+      self.left.trace()
 
 func copy*(self: Node): Node =
   case self.typ
@@ -93,7 +97,9 @@ proc `$`*(self: Node): string =
   of nList, nProc:
     result &= $self.nodes
   of nDot:
-    result &= $self.left
+    if self.left != nil:
+      result &= $self.left
+
     result &= "."
     result &= $self.right
 
@@ -124,6 +130,13 @@ proc eat(self: Parser, tt: TokenType): Token =
 
   inc self.idx
 
+proc parseDot(self: Parser, start: Node): Node =
+  result = start
+
+  while self.isType(ttDot):
+    result = Node(typ: nDot, dot: self.eat(ttDot), left: result)
+    result.right = Node(typ: nWord, tok: self.eat(ttWord))
+
 proc parseInner(self: Parser, startTok: ptr Token, endType: TokenType): seq[Node] =
   while self.idx < self.toks.len:
     let tok = self.toks[self.idx]
@@ -134,16 +147,13 @@ proc parseInner(self: Parser, startTok: ptr Token, endType: TokenType): seq[Node
       inc self.idx
 
       if self.isType(ttDot):
-        var le = n
-
-        while self.isType(ttDot):
-          inc self.idx
-          le = Node(typ: nDot, left: le)
-          le.right = Node(typ: nWord, tok: self.eat(ttWord))
-
-        result.add(le)
+        result.add(self.parseDot(n))
       else:
         result.add(n)
+    of ttComma:
+      let n = Node(typ: nDot, dot: self.eat(ttComma), left: nil)
+      n.right = Node(typ: nWord, tok: self.eat(ttWord))
+      result.add(self.parseDot(n))
     of ttSymbol:
       result.add(Node(typ: nSymbol, tok: tok))
       inc self.idx

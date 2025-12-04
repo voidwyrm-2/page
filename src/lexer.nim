@@ -24,7 +24,8 @@ type
     ttBracketClose,
     ttBraceOpen,
     ttBraceClose,
-    ttDot
+    ttDot,
+    ttComma
 
   Token* = object
     typ: TokenType
@@ -50,6 +51,8 @@ func toTokenType(ch: char, tt: var TokenType): bool =
     tt = ttBraceClose
   of '.':
     tt = ttDot
+  of ',':
+    tt = ttComma
   else:
     return false
 
@@ -80,6 +83,8 @@ func name*(typ: TokenType): string =
     "'}'"
   of ttDot:
     "'.'"
+  of ttComma:
+    "','"
 
 
 func initToken*(typ: TokenType, file, lit: string, col, ln: int): Token =

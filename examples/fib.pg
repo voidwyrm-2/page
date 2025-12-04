@@ -1,12 +1,3 @@
-% 'over', a common stack language operation,
-% isn't in Page because 'roll' implements part of its functionality
-/over {
-  % A B
-  exch dup % B A A
-  3 -1 roll % A A B
-  exch % A B A
-} def
-
 /fib {
 1 dict begin % Create a new dictionary with one initial slot
   /i exch def % Set 'i' to the amount of numbers given

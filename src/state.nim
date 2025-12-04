@@ -159,12 +159,18 @@ proc unset*(self: State, name: string): bool =
   result = d.hasKey(name)
   d.del(name)
 
+func pop*(self: State): Value
+proc check*(self: State, args: ProcArgs)
+
 proc nestedGet*(self: State, node: Node): tuple[literal: bool, scopes: seq[Dict], val: Value] =
   if node.typ != nDot:
-    panic("Node is not nDot")
+    panic(fmt"Node is not nDot, it's a {node.typ}")
 
   let d =
-    if node.left.typ == nDot:
+    if node.left == nil:
+      self.check(@[("", tAny)])
+      self.pop()
+    elif node.left.typ == nDot:
       let (_, scopes, v) = self.nestedGet(node.left)
       result.scopes.add(scopes)
       v
@@ -245,7 +251,10 @@ proc check*(self: State, args: ProcArgs) =
 
   for pst in args:
     if stack[i] isnot pst.typ:
-      raise newPgError(fmt"Expected type {pst.typ} for argument {pst.name} at stack position {i + 1}, but found type {stack[i].typ} instead")
+      if pst.name.len == 0:
+        raise newPgError(fmt"Expected type {pst.typ} at stack position {i + 1}, but found type {stack[i].typ} instead")
+      else:
+        raise newPgError(fmt"Expected type {pst.typ} for argument {pst.name} at stack position {i + 1}, but found type {stack[i].typ} instead")
 
     dec i
 

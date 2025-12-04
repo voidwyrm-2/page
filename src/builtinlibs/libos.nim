@@ -70,7 +70,7 @@ Returns the path to the current file.
 addF("argv",
 """
 'argv'
--> list<str>
+-> list(str)
 Returns the program arguments.
 """, @[]):
   s.push(newList(s.g.args.map(newString)))

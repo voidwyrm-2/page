@@ -382,9 +382,9 @@ Returns true if the stack has at least two items on it, false otherwise.
 addF("pop",
 """
 'pop'
-V ->
-Discards a value V.
-""", @[("V", tAny)]):
+X ->
+Discards a value X.
+""", @[("X", tAny)]):
   discard s.pop()
 
 addF("dup",
@@ -414,7 +414,7 @@ Positive R rotates to the right, negative R rotates to the left.
   var expe = newProcArgs(count)
 
   for i in 0..<expe.len():
-    expe[i] = ("I" & $(i + 1), tAny)
+    expe[i] = ("V" & $(i + 1), tAny)
 
   s.check(expe)
 
@@ -422,7 +422,7 @@ Positive R rotates to the right, negative R rotates to the left.
 
   var sl = st[st.len() - count .. ^1]
   
-  sl.rotateLeft(-roll)
+  sl.rotateLeft(roll)
 
   var j = 0
 
@@ -441,19 +441,34 @@ Exchanges the positions of values X and Y.
 addS("rot",
 """
 'rot'
-X Y Z -> Y Z X
-Rotates the top three values on the stack to the left.
+X Y Z -> Z X Y
+Rotates the top three values on the stack to the right.
 """, @[("X", tAny), ("Y", tAny), ("Z", tAny)]):
   "3 1 roll"
 
 addS("-rot",
 """
 '-rot'
-X Y Z -> Z X Y
-Rotates the top three values on the stack to the right.
+X Y Z -> Y Z X
+Rotates the top three values on the stack to the left.
 """, @[("X", tAny), ("Y", tAny), ("Z", tAny)]):
   "3 -1 roll"
 
+addS("nip",
+"""
+'nip'
+X Y -> Y
+Discards the second-from-top value on the stack.
+""", @[("X", tAny), ("Y", tAny)]):
+  "exch pop"
+
+addS("over",
+"""
+'over'
+X Y -> X Y X
+Discards the second-from-top value to the top of the stack.
+""", @[("X", tAny), ("Y", tAny)]):
+  "exch dup rot"
 
 # Arithmetic operators
 
@@ -1243,7 +1258,7 @@ end"""
 addF("symbols",
 """
 'symbols'
--> list<symbol>
+-> list(symbol)
 Returns a list of the symbols inside the last opened dictionary.
 """, @[]):
   let symbols = s.symbols
@@ -1257,7 +1272,7 @@ Returns a list of the symbols inside the last opened dictionary.
 addF("rsymbols",
 """
 'rsymbols'
--> list<list<symbol>>
+-> list(list(symbol))
 Returns a list of lists of the symbols in each dictionary.
 """, @[]):
   let dicts = s.dicts

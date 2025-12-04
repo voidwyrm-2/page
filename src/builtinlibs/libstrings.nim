@@ -23,7 +23,7 @@ template addS(name, doc: string, args: ProcArgs, body: string) =
 addF("chars",
 """
 'chars'
-S -> list<str>
+S -> list(str)
 Separates a string S into a list L of character strings.
 """, @[("S", tString)]):
   let str = s.pop().strv
@@ -38,7 +38,7 @@ Separates a string S into a list L of character strings.
 addF("split",
 """
 'split'
-S D -> list<str>
+S D -> list(str)
 Separates a string S into a list L of parts by a delimiter D.
 """, @[("S", tString), ("D", tString)]):
   let
